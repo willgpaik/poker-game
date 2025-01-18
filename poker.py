@@ -1,9 +1,12 @@
 import random
+import math
 
 # TO DO:
 # when printing card, make sure to convert 1->A, 11->J, 12->Q, and 13->K
 
 INT_MAX = 100000
+
+random.seed(100)
 
 class Card:
     def __init__(self):
@@ -30,15 +33,23 @@ class Card:
 # print(card)
 
 def raiseHuman (human, betHigh):
-    pass
+    bet = input(f"How much do you want to raise (your money: {human.money}): ")
+    
+    return bet
 
 def raiseAI (ai, betHigh):
-    pass
-
-
-
-
-
+    ai.callout = "Raise"
+    
+    betRand = random.randint(betHigh, ai.money) # random raise
+    if ai.score < 5:
+        bet = min(betRand, math.ceil(ai.money/10)) # raise 1/10 of money
+    elif ai.score >= 5 and ai.score < 10:
+        bet = min(betRand, math.ceil(ai.money/5)) # raise 1/5 of money
+    else:
+        bet = max(betRand, math.ceil(ai.money/3)) # raise 1/3 of money
+    
+    return bet
+    
 
 def callHuman (human, betHigh):
     if human.money >= betHigh:
@@ -46,11 +57,17 @@ def callHuman (human, betHigh):
     else:
         bet = human.money
 
-        return bet
-    pass
+    return bet
+
 def callAI (ai, betHigh):
-    ai.call = True
-    pass
+    ai.callout = "Call"
+
+    if ai.money >= betHigh:
+        bet = betHigh
+    else:
+        bet = ai.money
+    
+    return bet
 
 
 class Player:
@@ -58,6 +75,7 @@ class Player:
         self.hand = []
         self.money = money
         self.status = "p"
+        self.score = 0
         # status = "p"->play, "f"->fold, "b"->bankrupt
         #self.cont = False # if call or fold or bankrupt -> True
 
@@ -68,52 +86,80 @@ class Human(Player):
     def prompt(self, betHigh):
         act = input("What action do you want to play ('c'all, 'f'old, 'r'aise): ")
         if act == "c":
-            callHuman(self, betHigh)
-            pass
+            return callHuman(self, betHigh)
+            
         if act == "f":
             self.status = "f"
         if act == "r":
-            raiseHuman(self,betHigh)
-            pass
+            return raiseHuman(self,betHigh)
+            
+    
+    def getScore(self, community):
+        rank = think(self, community)[0]
+        self.score = 10 - rank
+        
 
 class AI(Player):
     def __init__(self, money=100) -> None:
         super().__init__(money)
+        callout = ""
     
-    def action(self, community):
+    def action(self, community, betHigh):
         if len(community) >= 3:
-            score = think(self, community)
+            cardRank = think(self, community)
         else:
-            score = preflopThink(self)
+            cardRank = preflopThink(self)
         myBet = 0
 
         # random action:
         boolRand = random.choice([1,10])
-        if boolRand == 1:
-            self.up()
-        if boolRand == 2:
-            self.call()
-        if boolRand == 3:
-            self.fold()
+        if boolRand <= 3:
+            print(f"AI rand action: {boolRand}")
+
+            if boolRand == 1:
+                myBet = self.up(betHigh)
+            if boolRand == 2:
+                myBet = self.call(betHigh)
+            if boolRand == 3:
+                self.fold()
+
+            return myBet
+
 
         # logical action:
-        if score[0] <= 6: # straight or better
-            self.up()
-        elif score[0] <= 9: # one pair
-            self.call()
-        elif score[0] == 10 and score[1] >= 10: # high card with 10+
-            self.call()
+        if cardRank[0] <= 6: # straight or better
+            myBet = self.up(betHigh)
+        elif cardRank[0] <= 9: # one pair
+            myBet = self.call(betHigh)
+        elif cardRank[0] == 10 and cardRank[1] >= 10: # high card with 10+
+            myBet = self.call(betHigh)
         else: # high card with less than 10
             self.fold()
+        
+        print(f"AI action: {self.callout}")
 
         return myBet
+
+    def getScore(self, community):
+        rank = 10
+        if community.empty():
+            rank = preflopThink(self)[0]
+        rank = think(self, community)[0]
+        self.score = 10 - rank
     
-    def call(self):
-        pass
+    def call(self, betHigh):
+        print("AI called")
+        return callAI(self, betHigh)
+        
     def fold(self):
+        print("AI folded")
         self.status = "f"
-    def up(self):
-        pass
+        
+    def up(self, betHigh):
+        print("AI raised")
+        return raiseAI(self, betHigh)
+        
+
 
 
 def preflopThink(player):
@@ -129,6 +175,8 @@ def preflopThink(player):
 
 
 def think(player, community) -> int | int | int:
+        # rank, high card, low card
+
         cards = player.hand + community
         cards.sort()
         # [('club', 13), ('diamond', 1), ('diamond', 2), ('diamond', 3), ('diamond', 8)]
@@ -373,21 +421,27 @@ def highcard(cards) -> int | int | int:
 
 
 def deal(player, card):
-    for i in range(3):
+    for i in range(2):
         player.hand.append(card.deck[0])
         card.deck.pop(0)
 
-def initBet(sb, bb, pot):
+def initBet(sb, bb, pot) -> int | int | int:
+    # output: small bet, big bet, pot
+
     small = INT_MAX
+
+    if small == INT_MAX:
+        small = input(f"How much do you want to bet (input 1-{sb.money}): ")
+
     while type(small) != int or small > sb.money:
         try:
             small = int(small)
             if small < 1 or small > sb.money:
-                print(f"Wrong number of AI! (input 1-{sb.money})")
-                small = input("How much do you want to bet: ")
+                print(f"Wrong value to bet! (input 1-{sb.money})")
+                small = input(f"How much do you want to bet (input 1-{sb.money}): ")
         except:
             print("Cannot convert string to int!")
-            small = input("How much do you want to bet: ")
+            small = input(f"How much do you want to bet (input 1-{sb.money}): ")
     sb.money = sb.money - small
 
     if bb.money >= small*2:
@@ -397,10 +451,54 @@ def initBet(sb, bb, pot):
     bb.money = bb.money - big
 
     pot = small + big
-    return pot
+
+    return small, big, pot
 
 def compareHands(playerList, winner):
     pass
+
+
+def showCard(community):
+    # show all community cards
+
+    print("Community cards are:")
+    for card in community:
+        if card[1] == 11:
+            print(f"{card[0]} J")
+        elif card[1] == 12:
+            print(f"{card[0]} Q")
+        elif card[1] == 13:
+            print(f"{card[0]} K")
+        else:
+            print(f"{card[0]} {card[1]}")
+
+
+def showHand(player):
+    print("Player hand:")
+    for card in player.hand:
+        if card[1] == 11:
+            print(f"{card[0]} J")
+        elif card[1] == 12:
+            print(f"{card[0]} Q")
+        elif card[1] == 13:
+            print(f"{card[0]} K")
+        else:
+            print(f"{card[0]} {card[1]}")
+
+def showAIHand(player):
+    print("AI hand:")
+    for card in player.hand:
+        if card[1] == 11:
+            print(f"{card[0]} J")
+        elif card[1] == 12:
+            print(f"{card[0]} Q")
+        elif card[1] == 13:
+            print(f"{card[0]} K")
+        else:
+            print(f"{card[0]} {card[1]}")
+            
+def emptyHand(player):
+    player.hand = []
 
 
 class Person:
@@ -432,10 +530,10 @@ while type(nAI) != int:
     except:
         print("Cannot convert string to int!")
         nAI = input("Enter number of AI: ")
-    
+
 
 playerList = [human]
-for i in range(0,nAI):
+for i in range(0, nAI):
     playerList.append(AI())
 
 sb = playerList[0]
@@ -445,15 +543,22 @@ bb = playerList[1]
 while True:
     pot = 0
 
-    pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
+    _, big, pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
 
     for player in playerList:
+        emptyHand(player)
+        # deals hands
         deal(player, deck)
+    
+    showHand(human)
+    showAIHand(playerList[1])
 
     # Pre-flop
     for player in playerList[2:]:
         pass # if player calls or raises increase pot and decrease player.money
-    playerList[0].prompt()
+    
+    playerList[0].prompt(big)
+
     if len(playerList) == 2 and playerList[0].status == "f":
         print(f"player AI player1 won the game!")
         # Winner takes money
@@ -462,7 +567,7 @@ while True:
             if player.status != "b":
                 player.status = "p"
         continue
-    playerList[1].action([])
+    playerList[1].action([], big)
 
     # Flop
     community = []
@@ -473,17 +578,27 @@ while True:
     community.append(deck.deck[0])
     deck.deck.pop(0)
 
+    showCard(community)
+
     nAlivePlayer = 0
     for player in playerList:
         if player.status == "p":
             nAlivePlayer = nAlivePlayer + 1
+
+    
     # Round
+    betHigh = big
     while len(community) <= 5 and nAlivePlayer > 1:
+        print("==========================================================\n")
         # contCnt = 0
-        human.prompt()
+
+        # need a while loop until everyone calls
+        humanBet = human.prompt(betHigh)
+        betHigh = max(betHigh, humanBet)
         for aiPlayer in playerList[1:]:
             if aiPlayer.status == "p":
-                aiPlayer.action(community) # if player calls or raises increase pot and decrease player.money
+                aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
+                betHigh = max(betHigh, aiBet)
         for player in playerList:
             if player.status == "f" or player.status == "b": # Fold and Bankrupt
                 nAlivePlayer = nAlivePlayer - 1
@@ -493,6 +608,14 @@ while True:
             #     contCnt = 0
         community.append(deck.deck[0])
         deck.deck.pop(0)
+        showHand(human)
+        showCard(community)
+        print("==========================================================\n")
+
+    showHand(human)
+    for aiPlayer in playerList[1:]:
+        showAIHand(aiPlayer)
+    showCard(community)
 
     # Find winner
     playerScore = [] # {score, high card, low card}
@@ -526,6 +649,7 @@ while True:
     else:
         finalWinnerString = "AI player" + str(finalWinner)
     print(f"player {finalWinnerString} won the game!")
+    
     
     # Winner takes money
     playerList[finalWinner].money = playerList[finalWinner].money + pot
