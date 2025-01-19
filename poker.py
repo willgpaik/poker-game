@@ -40,7 +40,11 @@ def raiseHuman (human, betHigh):
 def raiseAI (ai, betHigh):
     ai.callout = "Raise"
     
-    betRand = random.randint(betHigh, ai.money) # random raise
+    if betHigh < ai.money:
+        betRand = random.randint(betHigh, ai.money) # random raise
+    else:
+        betRand = ai.money
+
     if ai.score < 5:
         bet = min(betRand, math.ceil(ai.money/10)) # raise 1/10 of money
     elif ai.score >= 5 and ai.score < 10:
@@ -119,7 +123,11 @@ class AI(Player):
             if boolRand == 1:
                 myBet = self.up(betHigh)
             if boolRand == 2:
-                myBet = self.call(betHigh)
+                # random action 2, raise only if AI has more money to raise
+                if betHigh < self.money:
+                    myBet = self.call(betHigh)
+                else:
+                    self.fold()
             if boolRand == 3:
                 self.fold()
 
@@ -454,14 +462,24 @@ def initBet(sb, bb, pot) -> int | int | int:
 
     return small, big, pot
 
-def compareHands(playerList, winner):
-    pass
+def compareHands(playerList, winnerIdx):
+    
+    highIdx = 0
+    highScore = 0
+    
+    for idx in winnerIdx:
+        score = playerList[idx].score
+        if score > highScore:
+            highScore = score
+            highIdx = idx
+
+    return highIdx
 
 
 def showCard(community):
     # show all community cards
 
-    print("Community cards are:")
+    print("Community cards:")
     for card in community:
         if card[1] == 11:
             print(f"{card[0]} J")
@@ -588,8 +606,10 @@ while True:
     
     # Round
     betHigh = big
+    roundCnt = 0
     while len(community) <= 5 and nAlivePlayer > 1:
-        print("==========================================================\n")
+        roundCnt += 1
+        print(f"==================== Round {roundCnt} ====================\n")
         # contCnt = 0
 
         # need a while loop until everyone calls
@@ -610,7 +630,7 @@ while True:
         deck.deck.pop(0)
         showHand(human)
         showCard(community)
-        print("==========================================================\n")
+        print(f"==================== Round {roundCnt} ====================\n")
 
     showHand(human)
     for aiPlayer in playerList[1:]:
@@ -627,7 +647,7 @@ while True:
     
     winningScore = 100
     winnerCnt = 0
-    winner = []
+    winnerIdx = []
     for i in playerScore:
         if i[0] == 100:
             continue
@@ -637,12 +657,12 @@ while True:
     for idx, value in enumerate(playerScore):
         if value[0] == winningScore:
             winnerCnt = winnerCnt + 1
-            winner.append(idx)
+            winnerIdx.append(idx)
 
     if winnerCnt == 1:
-        finalWinner = winner[0] # index of winning player from playerList
+        finalWinner = winnerIdx[0] # index of winning player from playerList
     else:
-        finalWinner = compareHands(playerList, winner)
+        finalWinner = compareHands(playerList, winnerIdx)
     
     if finalWinner == 0:
         finalWinnerString = "Human player"
