@@ -37,7 +37,7 @@ def raiseHuman (human, betHigh, prevBet):
     owed = betHigh - prevBet
     humanAvail = human.money - owed
 
-    if humanAvail == 0:
+    if humanAvail <= 0:
         return 0
 
     bet = input(f"How much do you want to raise (your money: {humanAvail}): ")
@@ -62,7 +62,7 @@ def raiseAI (ai, betHigh, prevBet):
     owed = betHigh - prevBet
     aiAvail = ai.money - owed # actually available money to raise
     
-    if aiAvail == 0:
+    if aiAvail <= 0:
         return 0
 
     betRand = random.randint(1, aiAvail) # random raise
