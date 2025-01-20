@@ -120,7 +120,7 @@ def callAI (ai, betHigh, prevBet):
         # player needs to pay extra
         bet = owed
         ai.money -= betHigh - prevBet
-    elif owed > 0 and ai.money < oewd:
+    elif owed > 0 and ai.money < owed:
         bet = ai.money
         ai.money = 0
 
