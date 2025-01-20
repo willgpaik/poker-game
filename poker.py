@@ -6,7 +6,7 @@ import math
 
 INT_MAX = 100000
 
-random.seed(100)
+#random.seed(100)
 
 class Card:
     def __init__(self):
@@ -32,50 +32,111 @@ class Card:
 # card = Card()
 # print(card)
 
-def raiseHuman (human, betHigh):
-    bet = input(f"How much do you want to raise (your money: {human.money}): ")
+def raiseHuman (human, betHigh, prevBet):
+
+    owed = betHigh - prevBet
+    humanAvail = human.money - owed
+
+    if humanAvail == 0:
+        return 0
+
+    bet = input(f"How much do you want to raise (your money: {humanAvail}): ")
+
+    if type(bet) != int:
+        try:
+            bet = int(bet)
+            if bet < 1 or bet > humanAvail:
+                print("Wrong amount of money!")
+                bet = input(f"How much do you want to raise (your available money: {humanAvail}): ")
+        except:
+            print("Cannot convert string to int!")
+            bet = input(f"How much do you want to raise (your available money: {humanAvail}): ")
+
+    human.money -= owed + bet
     
     return bet
 
-def raiseAI (ai, betHigh):
-    ai.callout = "Raise"
+def raiseAI (ai, betHigh, prevBet):
+    ai.callout = "raise"
     
-    if betHigh < ai.money:
-        betRand = random.randint(betHigh, ai.money) # random raise
-    else:
-        betRand = ai.money
+    owed = betHigh - prevBet
+    aiAvail = ai.money - owed # actually available money to raise
+    
+    if aiAvail == 0:
+        return 0
 
+    betRand = random.randint(1, aiAvail) # random raise
+
+    # logical raise
     if ai.score < 5:
-        bet = min(betRand, math.ceil(ai.money/10)) # raise 1/10 of money
+        bet = min(betRand, math.ceil(aiAvail/5)) # raise 1/10 of money
     elif ai.score >= 5 and ai.score < 10:
-        bet = min(betRand, math.ceil(ai.money/5)) # raise 1/5 of money
+        bet = min(betRand, math.ceil(aiAvaily/3)) # raise 1/5 of money
     else:
-        bet = max(betRand, math.ceil(ai.money/3)) # raise 1/3 of money
+        bet = max(betRand, math.ceil(aiAvail/2)) # raise 1/3 of money
+
+    ai.money -= owed + bet
     
     return bet
     
 
-def callHuman (human, betHigh):
-    if human.money >= betHigh:
-        bet = betHigh
-    else:
+def callHuman (human, betHigh, prevBet):
+
+    owed = betHigh - prevBet
+    print(f"Human owed money {owed}")
+
+    if owed == 0:
+        return betHigh
+
+    if owed > 0 and human.money >= owed:
+        # if highest bet is greater than what player bet before,
+        # player needs to pay extra
+        bet = owed
+        human.money -= owed
+    elif owed > 0 and human.money < owed:
         bet = human.money
+        human.money = 0
+
+    # if human.money >= betHigh:
+    #     bet = betHigh
+    # else:
+    #     bet = human.money
+
+    #human.money -= bet
 
     return bet
 
-def callAI (ai, betHigh):
-    ai.callout = "Call"
+def callAI (ai, betHigh, prevBet):
+    ai.callout = "call"
 
-    if ai.money >= betHigh:
-        bet = betHigh
-    else:
+    owed = betHigh - prevBet
+    print(f"AI owed money {owed}")
+
+    if owed == 0:
+        return betHigh
+    
+    if owed > 0 and ai.money >= owed:
+        # if highest bet is greater than what player bet before,
+        # player needs to pay extra
+        bet = owed
+        ai.money -= betHigh - prevBet
+    elif owed > 0 and ai.money < oewd:
         bet = ai.money
+        ai.money = 0
+
+    # if ai.money >= betHigh:
+    #     bet = betHigh
+    # else:
+    #     bet = ai.money
+
+    #ai.money -= bet
     
     return bet
 
 
 class Player:
     def __init__(self, money=100) -> None:
+        self.type = ""
         self.hand = []
         self.money = money
         self.status = "p"
@@ -86,16 +147,22 @@ class Player:
 class Human(Player):
     def __init__(self, money=100) -> None:
         super().__init__(money)
+        self.type = "human"
 
-    def prompt(self, betHigh):
-        act = input("What action do you want to play ('c'all, 'f'old, 'r'aise): ")
-        if act == "c":
-            return callHuman(self, betHigh)
-            
-        if act == "f":
-            self.status = "f"
-        if act == "r":
-            return raiseHuman(self,betHigh)
+    def prompt(self, betHigh, prevBet):
+        print(f"Current human money: {self.money}")
+        act = ""
+        while (act != "c" and act != 'f' and act != 'r'):
+            act = input("What action do you want to play ('c'all, 'f'old, 'r'aise): ")
+            if act == "c":
+                return callHuman(self, betHigh, prevBet)
+            elif act == "f":
+                self.status = "f"
+                return -1
+            elif act == "r":
+                return raiseHuman(self,betHigh, prevBet)
+            else:
+                print("Wrong input")
             
     
     def getScore(self, community):
@@ -106,14 +173,16 @@ class Human(Player):
 class AI(Player):
     def __init__(self, money=100) -> None:
         super().__init__(money)
+        self.type = "AI"
         callout = ""
     
-    def action(self, community, betHigh):
+    def action(self, community, betHigh, prevBet):
+        print(f"Current AI money: {self.money}")
         if len(community) >= 3:
             cardRank = think(self, community)
         else:
             cardRank = preflopThink(self)
-        myBet = 0
+        myBet = -1
 
         # random action:
         boolRand = random.choice([1,10])
@@ -121,30 +190,46 @@ class AI(Player):
             print(f"AI rand action: {boolRand}")
 
             if boolRand == 1:
-                myBet = self.up(betHigh)
+                myBet = self.up(betHigh, prevBet)
+                callout = "raise"
             if boolRand == 2:
                 # random action 2, raise only if AI has more money to raise
                 if betHigh < self.money:
-                    myBet = self.call(betHigh)
+                    myBet = self.call(betHigh, prevBet)
+                    callout = "call"
                 else:
                     self.fold()
+                    callout = "fold"
             if boolRand == 3:
                 self.fold()
+                callout = "fold"
+            
+            if callout == "raise":
+                print(f"AI action: {self.callout} by {myBet}")
+            else:
+                print(f"AI action: {self.callout}")
 
             return myBet
 
 
         # logical action:
         if cardRank[0] <= 6: # straight or better
-            myBet = self.up(betHigh)
+            myBet = self.up(betHigh, prevBet)
+            callout = "raise"
         elif cardRank[0] <= 9: # one pair
-            myBet = self.call(betHigh)
+            myBet = self.call(betHigh, prevBet)
+            callout = "call"
         elif cardRank[0] == 10 and cardRank[1] >= 10: # high card with 10+
-            myBet = self.call(betHigh)
+            myBet = self.call(betHigh, prevBet)
+            callout = "call"
         else: # high card with less than 10
             self.fold()
+            callout = "fold"
         
-        print(f"AI action: {self.callout}")
+        if callout == "raise":
+            print(f"AI action: {callout} by {myBet}")
+        else:
+            print(f"AI action: {callout}")
 
         return myBet
 
@@ -155,17 +240,14 @@ class AI(Player):
         rank = think(self, community)[0]
         self.score = 10 - rank
     
-    def call(self, betHigh):
-        print("AI called")
-        return callAI(self, betHigh)
+    def call(self, betHigh, prevBet):
+        return callAI(self, betHigh, prevBet)
         
     def fold(self):
-        print("AI folded")
         self.status = "f"
         
-    def up(self, betHigh):
-        print("AI raised")
-        return raiseAI(self, betHigh)
+    def up(self, betHigh, prevBet):
+        return raiseAI(self, betHigh, prevBet)
         
 
 
@@ -436,6 +518,8 @@ def deal(player, card):
 def initBet(sb, bb, pot) -> int | int | int:
     # output: small bet, big bet, pot
 
+    print("This is initial bet for small blind")
+
     small = INT_MAX
 
     if small == INT_MAX:
@@ -492,7 +576,10 @@ def showCard(community):
 
 
 def showHand(player):
-    print("Player hand:")
+    if player.type == "human":
+        print("Player hand:")
+    else:
+        print("AI hand:")
     for card in player.hand:
         if card[1] == 11:
             print(f"{card[0]} J")
@@ -503,20 +590,46 @@ def showHand(player):
         else:
             print(f"{card[0]} {card[1]}")
 
-def showAIHand(player):
-    print("AI hand:")
-    for card in player.hand:
-        if card[1] == 11:
-            print(f"{card[0]} J")
-        elif card[1] == 12:
-            print(f"{card[0]} Q")
-        elif card[1] == 13:
-            print(f"{card[0]} K")
-        else:
-            print(f"{card[0]} {card[1]}")
-            
+
 def emptyHand(player):
     player.hand = []
+
+
+def callAll(playerList, nAlivePlayer, community, pot):
+    # make sure everyone calls
+    callCnt = 0
+    nAlivePlayer = len(playerList)
+    betHigh = 0
+
+    while callCnt != nAlivePlayer:
+        prevBet = [0]*playerCnt
+        for idx, player in enumerate(playerList):
+            if player.status == "f" or callCnt == nAlivePlayer:
+                prevBet[idx] = 0
+                continue
+            
+            if player.type == "human":
+                tmpBet = player.prompt(betHigh, prevBet[idx])
+            else:
+                tmpBet = player.action(community, betHigh, prevBet[idx])
+            
+            prevBet[idx] = tmpBet
+
+            if tmpBet == betHigh:
+                callCnt += 1
+            else:
+                if tmpBet == -1: # if folded, remove player from list
+                    nAlivePlayer -= 1
+                    betHigh = 0
+                else: # if raised,
+                    if callCnt == 0: # if raised by first player, then increase callCnt
+                        callCnt += 1
+                    betHigh += tmpBet
+            
+            pot += betHigh
+
+    return pot, nAlivePlayer
+
 
 
 class Person:
@@ -557,11 +670,24 @@ for i in range(0, nAI):
 sb = playerList[0]
 bb = playerList[1]
 
+keepPlaying = "y"
 # Game start
-while True:
+playerCnt = len(playerList)
+while keepPlaying == "y":
+
+    if playerCnt == 1:
+        print("Not enough players!\n")
+        keepPlaying = "n"
+        continue
+
     pot = 0
 
-    _, big, pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
+    small, big, pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
+
+    print(f"Human money: {human.money}")
+    for ai in playerList[1:]:
+        print(f"AI money: {ai.money}")
+    print(f"Pot money = {pot}")
 
     for player in playerList:
         emptyHand(player)
@@ -569,23 +695,26 @@ while True:
         deal(player, deck)
     
     showHand(human)
-    showAIHand(playerList[1])
+    showHand(playerList[1])
 
     # Pre-flop
     for player in playerList[2:]:
         pass # if player calls or raises increase pot and decrease player.money
     
-    playerList[0].prompt(big)
+    nAlivePlayer = len(playerList)
+    pot, nAlivePlayer = callAll(playerList, nAlivePlayer, [], pot)
 
-    if len(playerList) == 2 and playerList[0].status == "f":
-        print(f"player AI player1 won the game!")
-        # Winner takes money
-        playerList[1].money = playerList[1].money + pot
-        for player in playerList:
-            if player.status != "b":
-                player.status = "p"
-        continue
-    playerList[1].action([], big)
+    # playerList[0].prompt(big)
+
+    # if len(playerList) == 2 and playerList[0].status == "f":
+    #     print(f"player AI player1 won the game!")
+    #     # Winner takes money
+    #     playerList[1].money = playerList[1].money + pot
+    #     for player in playerList:
+    #         if player.status != "b":
+    #             player.status = "p"
+    #     continue
+    # playerList[1].action([], big)
 
     # Flop
     community = []
@@ -598,43 +727,79 @@ while True:
 
     showCard(community)
 
-    nAlivePlayer = 0
-    for player in playerList:
-        if player.status == "p":
-            nAlivePlayer = nAlivePlayer + 1
+    # nAlivePlayer = 0
+    # for player in playerList:
+    #     if player.status == "p":
+    #         nAlivePlayer = nAlivePlayer + 1
+
+    print(f"Human money: {human.money}")
+    for ai in playerList[1:]:
+        print(f"AI money: {ai.money}")
+    print(f"Pot money = {pot}")
 
     
     # Round
-    betHigh = big
     roundCnt = 0
     while len(community) <= 5 and nAlivePlayer > 1:
         roundCnt += 1
         print(f"==================== Round {roundCnt} ====================\n")
-        # contCnt = 0
+        
+        # make sure everyone called
+        pot, nAlivePlayer = callAll(playerList, nAlivePlayer, community, pot)
+        # callCnt = 0
+        # while callCnt != nAlivePlayer:
+        #     humanBet = human.prompt(betHigh)
+        #     if humanBet >= betHigh and callCnt == 0:
+        #         callCnt += 1
+        #         betHigh = humanBet
+        #     elif humanBet >= betHigh and callCnt != 0:
+        #         betHigh = humanBet
+        #         pass
+        #     else:
+        #         nAlivePlayer -= 1
+        #         betHigh = 0
+        #     pot += betHigh
 
-        # need a while loop until everyone calls
-        humanBet = human.prompt(betHigh)
-        betHigh = max(betHigh, humanBet)
-        for aiPlayer in playerList[1:]:
-            if aiPlayer.status == "p":
-                aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
-                betHigh = max(betHigh, aiBet)
-        for player in playerList:
-            if player.status == "f" or player.status == "b": # Fold and Bankrupt
-                nAlivePlayer = nAlivePlayer - 1
-            # if player.cont == True:
-            #     contCnt = contCnt + 1
-            # elif player.cont == False:
-            #     contCnt = 0
+        #     for aiPlayer in playerList[1:]:
+        #         if aiPlayer.status == "p":
+        #             aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
+        #             if callCnt == 1: # only human player called or raised
+        #                 if aiBet > betHigh: # if AI raised, then let human to play action
+        #                     pass
+        #                 elif aiBet == betHigh: # if AI called, then continue playing
+        #                     callCnt += 1
+        #                 else: # if AI folded, remove AI from alive player count
+        #                     nAlivePlayer -= 1
+        #                     betHigh = 0
+        #             else:
+        #                 if aiBet >= betHigh:
+        #                     callCnt += 1
+        #                     betHigh = aiBet
+        #             betHigh = max(betHigh, aiBet)
+        #             pot += betHigh
+            
+        print(f"Human money: {human.money}")
+        for ai in playerList[1:]:
+            print(f"AI money: {ai.money}")
+        print(f"Pot money = {pot}")
+
+            # for player in playerList:
+            #     if player.status == "f" or player.status == "b": # Fold and Bankrupt
+            #         nAlivePlayer = nAlivePlayer - 1
+                # if player.cont == True:
+                #     contCnt = contCnt + 1
+                # elif player.cont == False:
+                #     contCnt = 0
+
         community.append(deck.deck[0])
         deck.deck.pop(0)
-        showHand(human)
-        showCard(community)
+        # showHand(human)
+        # showCard(community)
         print(f"==================== Round {roundCnt} ====================\n")
 
     showHand(human)
     for aiPlayer in playerList[1:]:
-        showAIHand(aiPlayer)
+        showHand(aiPlayer)
     showCard(community)
 
     # Find winner
@@ -667,7 +832,7 @@ while True:
     if finalWinner == 0:
         finalWinnerString = "Human player"
     else:
-        finalWinnerString = "AI player" + str(finalWinner)
+        finalWinnerString = "AI player " + str(finalWinner)
     print(f"player {finalWinnerString} won the game!")
     
     
@@ -681,10 +846,22 @@ while True:
     for player in playerList:
         if player.money == 0:
             player.status = "b"
+            playerList.remove(player)
     
     for player in playerList:
         if player.status != "b":
             player.status = "p"
+
+    playerCnt = len(playerList)
+
+    print(f"Human money: {human.money}")
+    for ai in playerList[1:]:
+        print(f"AI money: {ai.money}")
+
+    keepPlaying = input("Do you want to keep playing? (y/n) ")
+    while keepPlaying != "y" and keepPlaying != "n":
+        print("Please input y or n")
+        keepPlaying = input("Do you want to keep playing? (y/n) ")
 
 # ai1 = AI() 
 # sb = player
