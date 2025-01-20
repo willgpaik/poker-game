@@ -2,7 +2,6 @@ import random
 import math
 
 # TO DO:
-# when printing card, make sure to convert 1->A, 11->J, 12->Q, and 13->K
 
 INT_MAX = 100000
 
@@ -69,11 +68,11 @@ def raiseAI (ai, betHigh, prevBet):
 
     # logical raise
     if ai.score < 5:
-        bet = min(betRand, math.ceil(aiAvail/5)) # raise 1/10 of money
+        bet = min(betRand, math.ceil(aiAvail/5)) # raise 1/5 of money
     elif ai.score >= 5 and ai.score < 10:
-        bet = min(betRand, math.ceil(aiAvaily/3)) # raise 1/5 of money
+        bet = min(betRand, math.ceil(aiAvaily/3)) # raise 1/3 of money
     else:
-        bet = max(betRand, math.ceil(aiAvail/2)) # raise 1/3 of money
+        bet = max(betRand, math.ceil(aiAvail/2)) # raise 1/2 of money
 
     ai.money -= owed + bet
     
@@ -565,7 +564,9 @@ def showCard(community):
 
     print("Community cards:")
     for card in community:
-        if card[1] == 11:
+        if card[1] == 1:
+            print(f"{card[0]} A")
+        elif card[1] == 11:
             print(f"{card[0]} J")
         elif card[1] == 12:
             print(f"{card[0]} Q")
@@ -581,7 +582,9 @@ def showHand(player):
     else:
         print("AI hand:")
     for card in player.hand:
-        if card[1] == 11:
+        if card[1] == 1:
+            print(f"{card[0]} A")
+        elif card[1] == 11:
             print(f"{card[0]} J")
         elif card[1] == 12:
             print(f"{card[0]} Q")
