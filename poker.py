@@ -70,7 +70,7 @@ def raiseAI (ai, betHigh, prevBet):
     if ai.score < 5:
         bet = min(betRand, math.ceil(aiAvail/5)) # raise 1/5 of money
     elif ai.score >= 5 and ai.score < 10:
-        bet = min(betRand, math.ceil(aiAvaily/3)) # raise 1/3 of money
+        bet = min(betRand, math.ceil(aiAvail/3)) # raise 1/3 of money
     else:
         bet = max(betRand, math.ceil(aiAvail/2)) # raise 1/2 of money
 
@@ -159,7 +159,7 @@ class Human(Player):
                 self.status = "f"
                 return -1
             elif act == "r":
-                return raiseHuman(self,betHigh, prevBet)
+                return raiseHuman(self, betHigh, prevBet)
             else:
                 print("Wrong input")
             
@@ -184,7 +184,7 @@ class AI(Player):
         myBet = -1
 
         # random action:
-        boolRand = random.choice([1,10])
+        boolRand = random.randint(1,10)
         if boolRand <= 3:
             print(f"AI rand action: {boolRand}")
 
@@ -234,7 +234,7 @@ class AI(Player):
 
     def getScore(self, community):
         rank = 10
-        if community.empty():
+        if not community:
             rank = preflopThink(self)[0]
         rank = think(self, community)[0]
         self.score = 10 - rank
@@ -258,7 +258,8 @@ def preflopThink(player):
         return threecard(cards)
     elif onepair(cards) != (-1, -1, -1):
         return onepair(cards)
-    elif highcard(cards) != (-1, -1, -1):
+    #elif highcard(cards) != (-1, -1, -1):
+    else:
         return highcard(cards)
     # at preflop stage, need to make decision based on hand
 
@@ -271,8 +272,8 @@ def think(player, community) -> int | int | int:
         # [('club', 13), ('diamond', 1), ('diamond', 2), ('diamond', 3), ('diamond', 8)]
         if royalflush(cards) != (-1, -1, -1): # (-1, -1, -1) means unable to make it
             return royalflush(cards) # if royalflush is obtained
-        elif straight(cards) != (-1, -1, -1):
-            return straight(cards)
+        elif straightflush(cards) != (-1, -1, -1):
+            return straightflush(cards)
         elif fourcard(cards) != (-1, -1, -1):
             return fourcard(cards)
         elif fullhouse(cards) != (-1, -1, -1):
@@ -287,7 +288,8 @@ def think(player, community) -> int | int | int:
             return twopair(cards)
         elif onepair(cards) != (-1, -1, -1):
             return onepair(cards)
-        elif highcard(cards) != (-1, -1, -1):
+        #elif highcard(cards) != (-1, -1, -1):
+        else:
             return highcard(cards)
         
 
@@ -296,22 +298,22 @@ def royalflush(cards) -> int | int | int:
     symbols = [card[0] for card in cards]
     if symbols.count('club') >= 5:
         values = [card[1] for card in cards if card[0] == 'club' and \
-                    (card == 1 or card == 10 or card == 11 or card == 12 or card == 13)]
+                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
         if len(values) == 5:
             return 1, -1, -1
     if symbols.count('diamond') >= 5:
         values = [card[1] for card in cards if card[0] == 'diamond' and \
-                    (card == 1 or card == 10 or card == 11 or card == 12 or card == 13)]
+                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
         if len(values) == 5:
             return 1, -1, -1
     if symbols.count('heart') >= 5:
         values = [card[1] for card in cards if card[0] == 'heart' and \
-                    (card == 1 or card == 10 or card == 11 or card == 12 or card == 13)]
+                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
         if len(values) == 5:
             return 1, -1, -1
     if symbols.count('spade') >= 5:
         values = [card[1] for card in cards if card[0] == 'spade' and \
-                    (card == 1 or card == 10 or card == 11 or card == 12 or card == 13)]
+                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
         if len(values) == 5:
             return 1, -1, -1
     return -1, -1, -1
@@ -320,7 +322,7 @@ def straightflush(cards) -> int | int | int:
     # Straight flush:
     symbols = [card[0] for card in cards]
     if symbols.count('club') >= 5:
-        values = [card[1] for card in cards if card[0] == 'heart']
+        values = [card[1] for card in cards if card[0] == 'club']
         high = -1 # highest card value
         if len(values) == 5:
             if values[-1] - values[0] == 4:
@@ -330,7 +332,8 @@ def straightflush(cards) -> int | int | int:
                 high = values[-1]
             elif values[-2] - values[0] == 4:
                 high = max(values[-2], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
         elif len(values) == 7:
             if values[-1] - values[2] == 4:
                 high = values[-1]
@@ -338,9 +341,10 @@ def straightflush(cards) -> int | int | int:
                 high = max(values[-2], high)
             elif values[-3] - values[0] == 4:
                 high = max(values[-3], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
     elif symbols.count('diamond') >= 5:
-        values = [card[1] for card in cards if card[0] == 'heart']
+        values = [card[1] for card in cards if card[0] == 'diamond']
         high = -1 # highest card value
         if len(values) == 5:
             if values[-1] - values[0] == 4:
@@ -350,7 +354,8 @@ def straightflush(cards) -> int | int | int:
                 high = values[-1]
             elif values[-2] - values[0] == 4:
                 high = max(values[-2], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
         elif len(values) == 7:
             if values[-1] - values[2] == 4:
                 high = values[-1]
@@ -358,7 +363,8 @@ def straightflush(cards) -> int | int | int:
                 high = max(values[-2], high)
             elif values[-3] - values[0] == 4:
                 high = max(values[-3], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
     elif symbols.count('heart') >= 5:
         values = [card[1] for card in cards if card[0] == 'heart']
         high = -1 # highest card value
@@ -370,7 +376,8 @@ def straightflush(cards) -> int | int | int:
                 high = values[-1]
             elif values[-2] - values[0] == 4:
                 high = max(values[-2], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
         elif len(values) == 7:
             if values[-1] - values[2] == 4:
                 high = values[-1]
@@ -378,9 +385,10 @@ def straightflush(cards) -> int | int | int:
                 high = max(values[-2], high)
             elif values[-3] - values[0] == 4:
                 high = max(values[-3], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
     elif symbols.count('spade') >= 5:
-        values = [card[1] for card in cards if card[0] == 'heart']
+        values = [card[1] for card in cards if card[0] == 'spade']
         high = -1 # highest card value
         if len(values) == 5:
             if values[-1] - values[0] == 4:
@@ -390,7 +398,8 @@ def straightflush(cards) -> int | int | int:
                 high = values[-1]
             elif values[-2] - values[0] == 4:
                 high = max(values[-2], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
         elif len(values) == 7:
             if values[-1] - values[2] == 4:
                 high = values[-1]
@@ -398,7 +407,8 @@ def straightflush(cards) -> int | int | int:
                 high = max(values[-2], high)
             elif values[-3] - values[0] == 4:
                 high = max(values[-3], high)
-            return 2, high, -1
+            if high != -1:
+                return 2, high, -1
     return -1, -1, -1
                 
 def fourcard(cards) -> int | int | int:
@@ -515,14 +525,11 @@ def deal(player, card):
         card.deck.pop(0)
 
 def initBet(sb, bb, pot) -> int | int | int:
-    # output: small bet, big bet, pot
+    # output: small blind, big blind, pot
 
     print("This is initial bet for small blind")
 
-    small = INT_MAX
-
-    if small == INT_MAX:
-        small = input(f"How much do you want to bet (input 1-{sb.money}): ")
+    small = input(f"How much do you want to bet (input 1-{sb.money}): ")
 
     while type(small) != int or small > sb.money:
         try:
@@ -598,11 +605,11 @@ def emptyHand(player):
     player.hand = []
 
 
-def callAll(playerList, nAlivePlayer, community, pot):
+def callAll(playerList, nAlivePlayer, community, pot, playerCnt):
     # make sure everyone calls
     callCnt = 0
-    nAlivePlayer = len(playerList)
     betHigh = 0
+    playerCnt = len(playerList)
 
     while callCnt != nAlivePlayer:
         prevBet = [0]*playerCnt
@@ -705,7 +712,7 @@ while keepPlaying == "y":
         pass # if player calls or raises increase pot and decrease player.money
     
     nAlivePlayer = len(playerList)
-    pot, nAlivePlayer = callAll(playerList, nAlivePlayer, [], pot)
+    pot, nAlivePlayer = callAll(playerList, nAlivePlayer, [], pot, playerCnt)
 
     # playerList[0].prompt(big)
 
@@ -748,7 +755,7 @@ while keepPlaying == "y":
         print(f"==================== Round {roundCnt} ====================\n")
         
         # make sure everyone called
-        pot, nAlivePlayer = callAll(playerList, nAlivePlayer, community, pot)
+        pot, nAlivePlayer = callAll(playerList, nAlivePlayer, community, pot, playerCnt)
         # callCnt = 0
         # while callCnt != nAlivePlayer:
         #     humanBet = human.prompt(betHigh)
@@ -796,8 +803,8 @@ while keepPlaying == "y":
 
         community.append(deck.deck[0])
         deck.deck.pop(0)
-        # showHand(human)
-        # showCard(community)
+        showHand(human)
+        showCard(community)
         print(f"==================== Round {roundCnt} ====================\n")
 
     showHand(human)
