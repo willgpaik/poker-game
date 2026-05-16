@@ -674,256 +674,263 @@ def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
 
 
 
+def main():
+    # MAIN
+    #     class Card
+    #     class Player
+    #     class AI
+    #     sb, bb
+    #     loop:
+    #         set Player.hand
+    #     3 CC    
+    #     loop:
+    #         action
+    #         CC (if loop cnt < 3)
 
-# MAIN
-#     class Card
-#     class Player
-#     class AI
-#     sb, bb
-#     loop:
-#         set Player.hand
-#     3 CC    
-#     loop:
-#         action
-#         CC (if loop cnt < 3)
-
-deck = Card()
-human = Human()
-nAI = input("Enter number of AI: ")
-while type(nAI) != int:
-    try:
-        nAI = int(nAI)
-        if nAI < 1 or nAI > 5:
-            print("Wrong number of AI! (input 1-5)")
+    deck = Card()
+    human = Human()
+    nAI = input("Enter number of AI: ")
+    while type(nAI) != int:
+        try:
+            nAI = int(nAI)
+            if nAI < 1 or nAI > 5:
+                print("Wrong number of AI! (input 1-5)")
+                nAI = input("Enter number of AI: ")
+        except:
+            print("Cannot convert string to int!")
             nAI = input("Enter number of AI: ")
-    except:
-        print("Cannot convert string to int!")
-        nAI = input("Enter number of AI: ")
 
 
-playerList = [human]
-for i in range(0, nAI):
-    playerList.append(AI())
+    playerList = [human]
+    for i in range(0, nAI):
+        playerList.append(AI())
 
-sb = playerList[0]
-bb = playerList[1]
+    sbOrder = 0
 
-keepPlaying = "y"
-# Game start
-playerCnt = len(playerList)
-while keepPlaying == "y":
-    deck = Card() # new deck for new game
+    sb = playerList[sbOrder % playerCnt]
+    bb = playerList[(sbOrder+1) % playerCnt]
 
-    if playerCnt == 1:
-        print("Not enough players!\n")
-        keepPlaying = "n"
-        continue
+    keepPlaying = "y"
+    # Game start
+    playerCnt = len(playerList)
+    while keepPlaying == "y":
+        deck = Card() # new deck for new game
 
-    pot = 0
+        if playerCnt == 1:
+            print("Not enough players!\n")
+            keepPlaying = "n"
+            continue
 
-    small, big, pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
+        pot = 0
 
-    print(f"Human money: {human.money}")
-    for ai in playerList[1:]:
-        print(f"AI money: {ai.money}")
-    print(f"Pot money = {pot}")
+        small, big, pot = initBet(sb, bb, pot) # first betting sb and bb (2x sb)
 
-    for player in playerList:
-        emptyHand(player)
-        # deals hands
-        deal(player, deck)
-    
-    showHand(human)
-    showHand(playerList[1])
-
-    # Pre-flop
-    for player in playerList[2:]:
-        pass # if player calls or raises increase pot and decrease player.money
-    
-    nAlivePlayer = len(playerList)
-    pot, nAlivePlayer = callAll(playerList, [], pot)
-
-    # playerList[0].prompt(big)
-
-    # if len(playerList) == 2 and playerList[0].status == "f":
-    #     print(f"player AI player1 won the game!")
-    #     # Winner takes money
-    #     playerList[1].money = playerList[1].money + pot
-    #     for player in playerList:
-    #         if player.status != "b":
-    #             player.status = "p"
-    #     continue
-    # playerList[1].action([], big)
-
-    # Flop
-    community = []
-    community.append(deck.deck[0])
-    deck.deck.pop(0)
-    community.append(deck.deck[0])
-    deck.deck.pop(0)
-    community.append(deck.deck[0])
-    deck.deck.pop(0)
-
-    showCard(community)
-
-    # nAlivePlayer = 0
-    # for player in playerList:
-    #     if player.status == "p":
-    #         nAlivePlayer = nAlivePlayer + 1
-
-    print(f"Human money: {human.money}")
-    for ai in playerList[1:]:
-        print(f"AI money: {ai.money}")
-    print(f"Pot money = {pot}")
-
-    
-    # Round
-    roundCnt = 0
-    while len(community) <= 5 and nAlivePlayer > 1:
-        roundCnt += 1
-        print(f"==================== Round {roundCnt} ====================\n")
-        
-        # make sure everyone called
-        pot, nAlivePlayer = callAll(playerList, community, pot)
-        # callCnt = 0
-        # while callCnt != nAlivePlayer:
-        #     humanBet = human.prompt(betHigh)
-        #     if humanBet >= betHigh and callCnt == 0:
-        #         callCnt += 1
-        #         betHigh = humanBet
-        #     elif humanBet >= betHigh and callCnt != 0:
-        #         betHigh = humanBet
-        #         pass
-        #     else:
-        #         nAlivePlayer -= 1
-        #         betHigh = 0
-        #     pot += betHigh
-
-        #     for aiPlayer in playerList[1:]:
-        #         if aiPlayer.status == "p":
-        #             aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
-        #             if callCnt == 1: # only human player called or raised
-        #                 if aiBet > betHigh: # if AI raised, then let human to play action
-        #                     pass
-        #                 elif aiBet == betHigh: # if AI called, then continue playing
-        #                     callCnt += 1
-        #                 else: # if AI folded, remove AI from alive player count
-        #                     nAlivePlayer -= 1
-        #                     betHigh = 0
-        #             else:
-        #                 if aiBet >= betHigh:
-        #                     callCnt += 1
-        #                     betHigh = aiBet
-        #             betHigh = max(betHigh, aiBet)
-        #             pot += betHigh
-            
         print(f"Human money: {human.money}")
         for ai in playerList[1:]:
             print(f"AI money: {ai.money}")
         print(f"Pot money = {pot}")
 
-            # for player in playerList:
-            #     if player.status == "f" or player.status == "b": # Fold and Bankrupt
-            #         nAlivePlayer = nAlivePlayer - 1
-                # if player.cont == True:
-                #     contCnt = contCnt + 1
-                # elif player.cont == False:
-                #     contCnt = 0
+        for player in playerList:
+            emptyHand(player)
+            # deals hands
+            deal(player, deck)
+        
+        showHand(human)
+        showHand(playerList[1])
 
+        # Pre-flop
+        for player in playerList[2:]:
+            pass # if player calls or raises increase pot and decrease player.money
+        
+        nAlivePlayer = len(playerList)
+        pot, nAlivePlayer = callAll(playerList, [], pot)
+
+        # playerList[0].prompt(big)
+
+        # if len(playerList) == 2 and playerList[0].status == "f":
+        #     print(f"player AI player1 won the game!")
+        #     # Winner takes money
+        #     playerList[1].money = playerList[1].money + pot
+        #     for player in playerList:
+        #         if player.status != "b":
+        #             player.status = "p"
+        #     continue
+        # playerList[1].action([], big)
+
+        # Flop
+        community = []
         community.append(deck.deck[0])
         deck.deck.pop(0)
-        showHand(human)
+        community.append(deck.deck[0])
+        deck.deck.pop(0)
+        community.append(deck.deck[0])
+        deck.deck.pop(0)
+
         showCard(community)
-        print(f"==================== Round {roundCnt} ====================\n")
 
-    showHand(human)
-    for aiPlayer in playerList[1:]:
-        showHand(aiPlayer)
-    showCard(community)
+        # nAlivePlayer = 0
+        # for player in playerList:
+        #     if player.status == "p":
+        #         nAlivePlayer = nAlivePlayer + 1
 
-    # Find winner
-    playerScore = [] # {score, high card, low card}
-    for player in playerList:
-        if player.status == 'p':
-            playerScore.append(think(player, community))
-        else: # if player is not playable
-            playerScore.append((100, -1, -1))
-    
-    winningScore = 100
-    winnerCnt = 0
-    winnerIdx = []
-    for i in playerScore:
-        if i[0] == 100:
-            continue
-        else:
-            winningScore = min(winningScore, i[0])
+        print(f"Human money: {human.money}")
+        for ai in playerList[1:]:
+            print(f"AI money: {ai.money}")
+        print(f"Pot money = {pot}")
 
-    for idx, value in enumerate(playerScore):
-        if value[0] == winningScore:
-            winnerCnt = winnerCnt + 1
-            winnerIdx.append(idx)
-
-    if winnerCnt == 1:
-        finalWinner = winnerIdx[0] # index of winning player from playerList
-    else:
-        finalWinner = compareHands(playerList, winnerIdx)
-    
-    if finalWinner == 0:
-        finalWinnerString = "Human player"
-    else:
-        finalWinnerString = "AI player " + str(finalWinner)
-    print(f"player {finalWinnerString} won the game!")
-    
-    
-    # Winner takes money
-    playerList[finalWinner].money = playerList[finalWinner].money + pot
-    
-    # for i, value in enumerate(playerScore):
+        
+        # Round
+        roundCnt = 0
+        while len(community) <= 5 and nAlivePlayer > 1:
+            roundCnt += 1
+            print(f"==================== Round {roundCnt} ====================\n")
             
+            # make sure everyone called
+            pot, nAlivePlayer = callAll(playerList, community, pot)
+            # callCnt = 0
+            # while callCnt != nAlivePlayer:
+            #     humanBet = human.prompt(betHigh)
+            #     if humanBet >= betHigh and callCnt == 0:
+            #         callCnt += 1
+            #         betHigh = humanBet
+            #     elif humanBet >= betHigh and callCnt != 0:
+            #         betHigh = humanBet
+            #         pass
+            #     else:
+            #         nAlivePlayer -= 1
+            #         betHigh = 0
+            #     pot += betHigh
 
-    # Remove bankrupted player
-    for player in playerList:
-        if player.money == 0:
-            player.status = "b"
-            playerList.remove(player)
-    
-    for player in playerList:
-        if player.status != "b":
+            #     for aiPlayer in playerList[1:]:
+            #         if aiPlayer.status == "p":
+            #             aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
+            #             if callCnt == 1: # only human player called or raised
+            #                 if aiBet > betHigh: # if AI raised, then let human to play action
+            #                     pass
+            #                 elif aiBet == betHigh: # if AI called, then continue playing
+            #                     callCnt += 1
+            #                 else: # if AI folded, remove AI from alive player count
+            #                     nAlivePlayer -= 1
+            #                     betHigh = 0
+            #             else:
+            #                 if aiBet >= betHigh:
+            #                     callCnt += 1
+            #                     betHigh = aiBet
+            #             betHigh = max(betHigh, aiBet)
+            #             pot += betHigh
+                
+            print(f"Human money: {human.money}")
+            for ai in playerList[1:]:
+                print(f"AI money: {ai.money}")
+            print(f"Pot money = {pot}")
+
+                # for player in playerList:
+                #     if player.status == "f" or player.status == "b": # Fold and Bankrupt
+                #         nAlivePlayer = nAlivePlayer - 1
+                    # if player.cont == True:
+                    #     contCnt = contCnt + 1
+                    # elif player.cont == False:
+                    #     contCnt = 0
+
+            community.append(deck.deck[0])
+            deck.deck.pop(0)
+            showHand(human)
+            showCard(community)
+            print(f"==================== Round {roundCnt} ====================\n")
+
+        showHand(human)
+        for aiPlayer in playerList[1:]:
+            showHand(aiPlayer)
+        showCard(community)
+
+        # Find winner
+        playerScore = [] # {score, high card, low card}
+        for player in playerList:
+            if player.status == 'p':
+                playerScore.append(think(player, community))
+            else: # if player is not playable
+                playerScore.append((100, -1, -1))
+        
+        winningScore = 100
+        winnerCnt = 0
+        winnerIdx = []
+        for i in playerScore:
+            if i[0] == 100:
+                continue
+            else:
+                winningScore = min(winningScore, i[0])
+
+        for idx, value in enumerate(playerScore):
+            if value[0] == winningScore:
+                winnerCnt = winnerCnt + 1
+                winnerIdx.append(idx)
+
+        if winnerCnt == 1:
+            finalWinner = winnerIdx[0] # index of winning player from playerList
+        else:
+            finalWinner = compareHands(playerList, winnerIdx)
+        
+        if finalWinner == 0:
+            finalWinnerString = "Human player"
+        else:
+            finalWinnerString = "AI player " + str(finalWinner)
+        print(f"player {finalWinnerString} won the game!")
+        
+        
+        # Winner takes money
+        playerList[finalWinner].money = playerList[finalWinner].money + pot
+        
+        # for i, value in enumerate(playerScore):
+                
+
+        # Remove bankrupted player
+        for player in playerList:
+            if player.money == 0:
+                player.status = "b"
+        playerList = [p for p in playerList if p.status != "b"]
+
+        for player in playerList:
             player.status = "p"
 
-    playerCnt = len(playerList)
+        playerCnt = len(playerList)
 
-    print(f"Human money: {human.money}")
-    for ai in playerList[1:]:
-        print(f"AI money: {ai.money}")
+        print(f"Human money: {human.money}")
+        for ai in playerList[1:]:
+            print(f"AI money: {ai.money}")
 
-    keepPlaying = input("Do you want to keep playing? (y/n) ")
-    while keepPlaying != "y" and keepPlaying != "n":
-        print("Please input y or n")
         keepPlaying = input("Do you want to keep playing? (y/n) ")
+        while keepPlaying != "y" and keepPlaying != "n":
+            print("Please input y or n")
+            keepPlaying = input("Do you want to keep playing? (y/n) ")
 
-# ai1 = AI() 
-# sb = player
-# bb = ai1
+    sbOrder = (sbOrder+1) % playerCnt
 
-# listPlayer = [player, ai1]
+    # ai1 = AI() 
+    # sb = player
+    # bb = ai1
 
-
-# while True:
-#     deal(player,deck)
-#     deal(ai1,deck)
-#     community = []
-#     community = commCard(deck)
-#     community = commCard(deck)
-#     community = commCard(deck)
-#     while len(community) <= 5 or nAlivePlayer > 1:
-#         player.prompt()
-#         ai1.action()
-#         if len(community) != 5:
-#             community = commCard(deck)
+    # listPlayer = [player, ai1]
 
 
+    # while True:
+    #     deal(player,deck)
+    #     deal(ai1,deck)
+    #     community = []
+    #     community = commCard(deck)
+    #     community = commCard(deck)
+    #     community = commCard(deck)
+    #     while len(community) <= 5 or nAlivePlayer > 1:
+    #         player.prompt()
+    #         ai1.action()
+    #         if len(community) != 5:
+    #             community = commCard(deck)
 
-# val = input("Enter your value: ")
-# print(val)
-# card.deal()
+
+
+    # val = input("Enter your value: ")
+    # print(val)
+    # card.deal()
+
+
+if __name__ == "__main__":
+    main()
