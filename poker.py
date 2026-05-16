@@ -605,41 +605,39 @@ def emptyHand(player):
     player.hand = []
 
 
-def callAll(playerList, nAlivePlayer, community, pot, playerCnt):
-    # make sure everyone calls
-    callCnt = 0
+def callAll(playerList, community, pot):
     betHigh = 0
-    playerCnt = len(playerList)
+    roundBet = [0] * len(playerList) # each player's bet for this round
 
-    while callCnt != nAlivePlayer:
-        prevBet = [0]*playerCnt
+    while True:
+        allCalled = True
+
         for idx, player in enumerate(playerList):
-            if player.status == "f" or callCnt == nAlivePlayer:
-                prevBet[idx] = 0
+            if player.status != 'p':
+                continue
+            if roundBet[idx] == betHigh:
                 continue
             
-            if player.type == "human":
-                tmpBet = player.prompt(betHigh, prevBet[idx])
-            else:
-                tmpBet = player.action(community, betHigh, prevBet[idx])
-            
-            prevBet[idx] = tmpBet
+            allCalled = False
 
-            if tmpBet == betHigh:
-                callCnt += 1
+            if player.type == "human":
+                result = player.prompt(betHigh, roundBet[idx])
             else:
-                if tmpBet == -1: # if folded, remove player from list
-                    nAlivePlayer -= 1
-                    betHigh = 0
-                else: # if raised,
-                    if callCnt == 0: # if raised by first player, then increase callCnt
-                        callCnt += 1
-                    betHigh += tmpBet
+                result = player.action(community, betHigh, roundBet[idx])
             
-            pot += betHigh
+            if result != -1:
+                roundBet[idx] += result
+                if roundBet[idx] > betHigh:
+                    betHigh = roundBet[idx]
+        
+        if allCalled:
+            break
+
+    pot += sum(roundBet)
+
+    nAlivePlayer = sum(1 for p in playerList if p.status == 'p')
 
     return pot, nAlivePlayer
-
 
 
 class Person:
