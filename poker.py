@@ -905,6 +905,12 @@ def main():
 
     sbOrder = (sbOrder+1) % playerCnt
 
+    # if human player is removed, end the game
+    if human not in playerList:
+        print("You are bankrupt! Game over.")
+        break
+
+
     # ai1 = AI() 
     # sb = player
     # bb = ai1
