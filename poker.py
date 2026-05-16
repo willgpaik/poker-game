@@ -1,5 +1,6 @@
 import random
 import math
+import copy
 
 # TO DO:
 
@@ -175,53 +176,48 @@ class AI(Player):
         self.type = "AI"
         callout = ""
     
-    def action(self, community, betHigh, prevBet):
+    def action(self, community, betHigh, prevBet, nAlivePlayer, deck, nSimulation=1000):
         print(f"Current AI money: {self.money}")
-        if len(community) >= 3:
-            cardRank = think(self, community)
-        else:
-            cardRank = preflopThink(self)
         myBet = -1
 
         # random action:
-        boolRand = random.randint(1,10)
-        if boolRand <= 3:
-            print(f"AI rand action: {boolRand}")
+        if random.random() < 0.3: # 30% chance to play random action
+            boolRand = random.randint(1,10)
+            if boolRand <= 3:
+                print(f"AI rand action: {boolRand}")
 
-            if boolRand == 1:
-                myBet = self.up(betHigh, prevBet)
-                callout = "raise"
-            if boolRand == 2:
-                # random action 2, raise only if AI has more money to raise
-                if betHigh < self.money:
-                    myBet = self.call(betHigh, prevBet)
-                    callout = "call"
-                else:
+                if boolRand == 1:
+                    myBet = self.up(betHigh, prevBet)
+                    callout = "raise"
+                elif boolRand == 2:
+                    # random action 2, raise only if AI has more money to raise
+                    if betHigh < self.money:
+                        myBet = self.call(betHigh, prevBet)
+                        callout = "call"
+                    else:
+                        self.fold()
+                        callout = "fold"
+                elif boolRand == 3:
                     self.fold()
                     callout = "fold"
-            if boolRand == 3:
-                self.fold()
-                callout = "fold"
-            
-            if callout == "raise":
-                print(f"AI action: {self.callout} by {myBet}")
-            else:
-                print(f"AI action: {self.callout}")
+                
+                if callout == "raise":
+                    print(f"AI action: {callout} by {myBet}")
+                else:
+                    print(f"AI action: {callout}")
 
-            return myBet
+                return myBet
 
 
         # logical action:
-        if cardRank[0] <= 6: # straight or better
+        winRate = simulate(nAlivePlayer, self, community, deck, nSimulation)
+        if winRate > 0.7 + random.uniform(-0.4, 0.4): # more than 70% chance to win
             myBet = self.up(betHigh, prevBet)
             callout = "raise"
-        elif cardRank[0] <= 9: # one pair
+        elif winRate > 0.4 + random.uniform(-0.2, 0.2): # more than 40% chance to win
             myBet = self.call(betHigh, prevBet)
             callout = "call"
-        elif cardRank[0] == 10 and cardRank[1] >= 10: # high card with 10+
-            myBet = self.call(betHigh, prevBet)
-            callout = "call"
-        else: # high card with less than 10
+        else: # less than 40% chance to win
             self.fold()
             callout = "fold"
         
@@ -258,7 +254,6 @@ def preflopThink(player):
         return threecard(cards)
     elif onepair(cards) != (-1, -1, -1):
         return onepair(cards)
-    #elif highcard(cards) != (-1, -1, -1):
     else:
         return highcard(cards)
     # at preflop stage, need to make decision based on hand
@@ -623,7 +618,7 @@ def callAll(playerList, community, pot):
             if player.type == "human":
                 result = player.prompt(betHigh, roundBet[idx])
             else:
-                result = player.action(community, betHigh, roundBet[idx])
+                result = player.action(community, betHigh, roundBet[idx], deck)
             
             if result != -1:
                 roundBet[idx] += result
@@ -644,6 +639,41 @@ class Person:
     def __init__(self, name, age):
         self.my_name = name
         self.age = age
+
+
+def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
+    wins = 0
+    nOpp = nAlivePlayer-1
+
+    for i in range(nSimulation):
+        oppList = []
+
+        # copy remaining deck
+        remainingDeck = copy.deepcopy(deck)
+
+        # complete community cards (up to 5 cards)
+        simCommunity = community.copy()
+        while len(simCommunity) < 5:
+            card = remainingDeck.deck.pop(0)
+            simCommunity.append(card)
+
+        for idx in range(nOpp):
+            oppList.append(AI())
+            deal(oppList[idx], remainingDeck)
+
+        myRank = think(player, simCommunity)[0]
+        oppRank = min(think(opp, simCommunity)[0] for opp in oppList)
+
+        if myRank <= oppRank:
+            wins += 1
+
+    return wins / nSimulation
+            
+
+
+
+
+
 
 # MAIN
 #     class Card
@@ -682,6 +712,7 @@ keepPlaying = "y"
 # Game start
 playerCnt = len(playerList)
 while keepPlaying == "y":
+    deck = Card() # new deck for new game
 
     if playerCnt == 1:
         print("Not enough players!\n")
@@ -710,7 +741,7 @@ while keepPlaying == "y":
         pass # if player calls or raises increase pot and decrease player.money
     
     nAlivePlayer = len(playerList)
-    pot, nAlivePlayer = callAll(playerList, nAlivePlayer, [], pot, playerCnt)
+    pot, nAlivePlayer = callAll(playerList, [], pot)
 
     # playerList[0].prompt(big)
 
@@ -753,7 +784,7 @@ while keepPlaying == "y":
         print(f"==================== Round {roundCnt} ====================\n")
         
         # make sure everyone called
-        pot, nAlivePlayer = callAll(playerList, nAlivePlayer, community, pot, playerCnt)
+        pot, nAlivePlayer = callAll(playerList, community, pot)
         # callCnt = 0
         # while callCnt != nAlivePlayer:
         #     humanBet = human.prompt(betHigh)
