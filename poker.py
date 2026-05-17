@@ -6,6 +6,8 @@ import copy
 
 INT_MAX = 100000
 
+FACE_CARDS = {1: "A", 11: "J", 12: "Q", 13: "K"}
+
 #random.seed(100)
 
 class Card:
@@ -561,39 +563,25 @@ def compareHands(playerList, winnerIdx):
     return highIdx
 
 
+
 def showCard(community):
-    # show all community cards
+    # show all community cards    
 
     print("Community cards:")
     for card in community:
-        if card[1] == 1:
-            print(f"{card[0]} A")
-        elif card[1] == 11:
-            print(f"{card[0]} J")
-        elif card[1] == 12:
-            print(f"{card[0]} Q")
-        elif card[1] == 13:
-            print(f"{card[0]} K")
-        else:
-            print(f"{card[0]} {card[1]}")
-
+        value = FACE_CARDS.get(card[1], card[1])
+        print(f"{card[0]} {value}")
 
 def showHand(player):
+
     if player.type == "human":
         print("Player hand:")
     else:
         print("AI hand:")
+
     for card in player.hand:
-        if card[1] == 1:
-            print(f"{card[0]} A")
-        elif card[1] == 11:
-            print(f"{card[0]} J")
-        elif card[1] == 12:
-            print(f"{card[0]} Q")
-        elif card[1] == 13:
-            print(f"{card[0]} K")
-        else:
-            print(f"{card[0]} {card[1]}")
+        value = FACE_CARDS.get(card[1], card[1])
+        print(f"{card[0]} {value}")
 
 
 def emptyHand(player):
