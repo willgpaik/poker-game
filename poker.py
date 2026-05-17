@@ -42,7 +42,7 @@ def raiseHuman (human, betHigh, prevBet):
     if humanAvail <= 0:
         return 0
 
-    bet = input(f"How much do you want to raise (your money: {humanAvail}): ")
+    bet = input(f"How much do you want to raise (available to raise: {humanAvail}): ")
 
     if type(bet) != int:
         try:
@@ -605,9 +605,11 @@ def emptyHand(player):
     player.hand = []
 
 
-def callAll(playerList, community, pot):
-    betHigh = 0
+def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=None):
     roundBet = [0] * len(playerList) # each player's bet for this round
+    if initBets:
+        for idx, amount in initBets.items():
+            roundBet[idx] = amount
 
     while True:
         allCalled = True
@@ -623,7 +625,7 @@ def callAll(playerList, community, pot):
             if player.type == "human":
                 result = player.prompt(betHigh, roundBet[idx])
             else:
-                result = player.action(community, betHigh, roundBet[idx], deck)
+                result = player.action(community, betHigh, roundBet[idx], nAlivePlayer, deck, nSimulation=1000)
             
             if player.money == 0:
                 player.status = 'a' # all-in
@@ -638,7 +640,7 @@ def callAll(playerList, community, pot):
 
     pot += sum(roundBet)
 
-    nAlivePlayer = sum(1 for p in playerList if p.status == 'p')
+    nAlivePlayer = sum(1 for p in playerList if (p.status == 'p' or p.status == 'a'))
 
     return pot, nAlivePlayer
 
@@ -751,8 +753,12 @@ def main():
         for player in playerList[2:]:
             pass # if player calls or raises increase pot and decrease player.money
         
-        nAlivePlayer = len(playerList)
-        pot, nAlivePlayer = callAll(playerList, [], pot)
+        nAlivePlayer = sum(1 for p in playerList if (p.status == 'p' or p.status == 'a'))
+        initBets = {
+                playerList.index(sb): small,
+                playerList.index(bb): big
+                }
+        pot, nAlivePlayer = callAll(playerList, [], pot, deck, nAlivePlayer, betHigh=big, initBets=initBets)
 
         # playerList[0].prompt(big)
 
@@ -790,61 +796,22 @@ def main():
         
         # Round
         roundCnt = 0
-        while len(community) <= 5 and nAlivePlayer > 1:
+        while len(community) < 5 and nAlivePlayer > 1:
             roundCnt += 1
             print(f"==================== Round {roundCnt} ====================\n")
             
-            # make sure everyone called
-            pot, nAlivePlayer = callAll(playerList, community, pot)
-            # callCnt = 0
-            # while callCnt != nAlivePlayer:
-            #     humanBet = human.prompt(betHigh)
-            #     if humanBet >= betHigh and callCnt == 0:
-            #         callCnt += 1
-            #         betHigh = humanBet
-            #     elif humanBet >= betHigh and callCnt != 0:
-            #         betHigh = humanBet
-            #         pass
-            #     else:
-            #         nAlivePlayer -= 1
-            #         betHigh = 0
-            #     pot += betHigh
+            community.append(deck.deck.pop(0))
+            showCard(community)
 
-            #     for aiPlayer in playerList[1:]:
-            #         if aiPlayer.status == "p":
-            #             aiBet = aiPlayer.action(community, betHigh) # if player calls or raises increase pot and decrease player.money
-            #             if callCnt == 1: # only human player called or raised
-            #                 if aiBet > betHigh: # if AI raised, then let human to play action
-            #                     pass
-            #                 elif aiBet == betHigh: # if AI called, then continue playing
-            #                     callCnt += 1
-            #                 else: # if AI folded, remove AI from alive player count
-            #                     nAlivePlayer -= 1
-            #                     betHigh = 0
-            #             else:
-            #                 if aiBet >= betHigh:
-            #                     callCnt += 1
-            #                     betHigh = aiBet
-            #             betHigh = max(betHigh, aiBet)
-            #             pot += betHigh
+            # make sure everyone called
+            pot, nAlivePlayer = callAll(playerList, community, pot, deck, nAlivePlayer)
                 
             print(f"Human money: {human.money}")
             for ai in playerList[1:]:
                 print(f"AI money: {ai.money}")
             print(f"Pot money = {pot}")
 
-                # for player in playerList:
-                #     if player.status == "f" or player.status == "b": # Fold and Bankrupt
-                #         nAlivePlayer = nAlivePlayer - 1
-                    # if player.cont == True:
-                    #     contCnt = contCnt + 1
-                    # elif player.cont == False:
-                    #     contCnt = 0
-
-            community.append(deck.deck[0])
-            deck.deck.pop(0)
             showHand(human)
-            showCard(community)
             print(f"==================== Round {roundCnt} ====================\n")
 
         showHand(human)
@@ -855,7 +822,7 @@ def main():
         # Find winner
         playerScore = [] # {score, high card, low card}
         for player in playerList:
-            if player.status == 'p':
+            if player.status == 'p' or player.ststus == 'a':
                 playerScore.append(think(player, community))
             else: # if player is not playable
                 playerScore.append((100, -1, -1))

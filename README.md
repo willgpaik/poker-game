@@ -8,6 +8,6 @@ Texas Hold'em poker game in Python with AI opponent.
 python poker.py
 
 ## Planned features
-- [ ] Monte Carlo-based AI
+- [x] Monte Carlo-based AI
 - [ ] Multi-player support
 - [ ] Web version (future)
