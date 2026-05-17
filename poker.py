@@ -144,6 +144,7 @@ class Player:
         self.status = "p"
         self.score = 0
         # status = "p"->play, "f"->fold, "b"->bankrupt
+        # status = "a"->all-in (side pot no implemented)
         #self.cont = False # if call or fold or bankrupt -> True
 
 class Human(Player):
@@ -188,7 +189,12 @@ class AI(Player):
             if boolRand <= 3:
                 print(f"AI rand action: {boolRand}")
 
-                if boolRand == 1:
+                if random.random() < 0.1: # randomly bluff
+                    myBet = self.money
+                    self.money = 0
+                    self.status = 'a'
+                    callout = "all-in"
+                elif boolRand == 1:
                     myBet = self.up(betHigh, prevBet)
                     callout = "raise"
                 elif boolRand == 2:
@@ -199,11 +205,12 @@ class AI(Player):
                     else:
                         self.fold()
                         callout = "fold"
-                elif boolRand == 3:
+                else: # boolRand == 3
                     self.fold()
                     callout = "fold"
-                
-                if callout == "raise":
+
+                                
+                if callout == "raise" or callout == "all-in":
                     print(f"AI action: {callout} by {myBet}")
                 else:
                     print(f"AI action: {callout}")
@@ -213,7 +220,17 @@ class AI(Player):
 
         # logical action:
         winRate = simulate(nAlivePlayer, self, community, deck, nSimulation)
-        if winRate > 0.7 + random.uniform(-0.4, 0.4): # more than 70% chance to win
+        if winRate > 0.9 and random.random() < 0.3: # with high chance to win, all-in with 30% chance
+            myBet = self.money
+            self.money = 0
+            self.status = 'a'
+            callout = "all-in"
+        elif winRate < 0.2 and random.random() < 0.1: # if chance to win is really low, bluff
+            myBet = self.money
+            self.money = 0
+            self.status = 'a'
+            callout = "all-in"
+        elif winRate > 0.7 + random.uniform(-0.4, 0.4): # more than 70% chance to win
             myBet = self.up(betHigh, prevBet)
             callout = "raise"
         elif winRate > 0.4 + random.uniform(-0.2, 0.2): # more than 40% chance to win
@@ -223,7 +240,7 @@ class AI(Player):
             self.fold()
             callout = "fold"
         
-        if callout == "raise":
+        if callout == "raise" or callout == "all-in":
             print(f"AI action: {callout} by {myBet}")
         else:
             print(f"AI action: {callout}")
@@ -608,6 +625,9 @@ def callAll(playerList, community, pot):
             else:
                 result = player.action(community, betHigh, roundBet[idx], deck)
             
+            if player.money == 0:
+                player.status = 'a' # all-in
+            
             if result != -1:
                 roundBet[idx] += result
                 if roundBet[idx] > betHigh:
@@ -695,18 +715,19 @@ def main():
 
     sbOrder = 0
 
+    playerCnt = len(playerList)
     sb = playerList[sbOrder % playerCnt]
     bb = playerList[(sbOrder+1) % playerCnt]
 
-    keepPlaying = "y"
+    keepPlaying = 'y'
     # Game start
     playerCnt = len(playerList)
-    while keepPlaying == "y":
+    while keepPlaying == 'y':
         deck = Card() # new deck for new game
 
         if playerCnt == 1:
             print("Not enough players!\n")
-            keepPlaying = "n"
+            keepPlaying = 'n'
             continue
 
         pot = 0
@@ -874,11 +895,11 @@ def main():
         # Remove bankrupted player
         for player in playerList:
             if player.money == 0:
-                player.status = "b"
-        playerList = [p for p in playerList if p.status != "b"]
+                player.status = 'b'
+        playerList = [p for p in playerList if p.status != 'b']
 
         for player in playerList:
-            player.status = "p"
+            player.status = 'p'
 
         playerCnt = len(playerList)
 
@@ -887,16 +908,17 @@ def main():
             print(f"AI money: {ai.money}")
 
         keepPlaying = input("Do you want to keep playing? (y/n) ")
-        while keepPlaying != "y" and keepPlaying != "n":
+        while keepPlaying != 'y' and keepPlaying != 'n':
             print("Please input y or n")
             keepPlaying = input("Do you want to keep playing? (y/n) ")
 
+        # if human player is removed, end the game
+        if human not in playerList:
+            print("You are bankrupt! Game over.")
+            break
+    
     sbOrder = (sbOrder+1) % playerCnt
 
-    # if human player is removed, end the game
-    if human not in playerList:
-        print("You are bankrupt! Game over.")
-        break
 
 
     # ai1 = AI() 
