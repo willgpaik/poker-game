@@ -35,106 +35,90 @@ class Card:
 # print(card)
 
 def raiseHuman (human, betHigh, prevBet):
+    # function returns how much human player will raise
 
     owed = betHigh - prevBet
     humanAvail = human.money - owed
 
     if humanAvail <= 0:
+        # if human player has not enough money to raise
         return 0
 
-    bet = input(f"How much do you want to raise (available to raise: {humanAvail}): ")
+    try:
+        bet = int(input(f"How much do you want to raise (available: {humanAvail}): "))
+        if bet < 1 or bet > humanAvail:
+            print(f"Wrong amount! input 1-{humanAvail}")
+            return raiseHuman(human, betHigh, prevBet)  # retry
+    except:
+        print("Please enter a number!")
+        return raiseHuman(human, betHigh, prevBet)  # retry
 
-    if type(bet) != int:
-        try:
-            bet = int(bet)
-            if bet < 1 or bet > humanAvail:
-                print("Wrong amount of money!")
-                bet = input(f"How much do you want to raise (your available money: {humanAvail}): ")
-        except:
-            print("Cannot convert string to int!")
-            bet = input(f"How much do you want to raise (your available money: {humanAvail}): ")
+    # returns player owed to continue play + amount human player wants to raise
+    return owed + bet
 
-    human.money -= owed + bet
-    
-    return bet
-
-def raiseAI (ai, betHigh, prevBet):
+def raiseAI (ai, betHigh, prevBet, winRate):
+    # function returns how much AI player will raise
     ai.callout = "raise"
     
     owed = betHigh - prevBet
     aiAvail = ai.money - owed # actually available money to raise
     
     if aiAvail <= 0:
+        # if AI player has not enough money to raise
         return 0
 
     betRand = random.randint(1, aiAvail) # random raise
 
-    # logical raise
-    if ai.score < 5:
-        bet = min(betRand, math.ceil(aiAvail/5)) # raise 1/5 of money
-    elif ai.score >= 5 and ai.score < 10:
-        bet = min(betRand, math.ceil(aiAvail/3)) # raise 1/3 of money
+    # raise based on the winRate
+    if winRate > 0.8:
+        bet = math.ceil(aiAvail * 0.5) # raise 1/5 of money
+    elif winRate > 0.6:
+        bet = math.ceil(aiAvail * 0.3) # raise 1/3 of money
     else:
-        bet = max(betRand, math.ceil(aiAvail/2)) # raise 1/2 of money
+        bet = math.ceil(aiAvail * 0.1) # raise 1/2 of money
 
-    ai.money -= owed + bet
-    
-    return bet
+    # adding randomness
+    bet = max(1, bet + random.randint(-math.ceil(bet*0.2), math.ceil(bet*0.2)))
+    bet = min(bet, aiAvail) # make sure not to bet over available money
+
+    # returns AI owed to continue play + amount AI wants to raise
+    return owed + bet
     
 
 def callHuman (human, betHigh, prevBet):
+    # function returns how much human player owed to continue play
 
     owed = betHigh - prevBet
     print(f"Human owed money {owed}")
 
     if owed == 0:
-        return betHigh
+        # if human player owed nothing
+        return 0
 
-    if owed > 0 and human.money >= owed:
-        # if highest bet is greater than what player bet before,
-        # player needs to pay extra
-        bet = owed
-        human.money -= owed
-    elif owed > 0 and human.money < owed:
-        bet = human.money
-        human.money = 0
-
-    # if human.money >= betHigh:
-    #     bet = betHigh
-    # else:
-    #     bet = human.money
-
-    #human.money -= bet
-
-    return bet
+    if human.money >= owed:
+        # if human player has enough money to call
+        return owed
+    else:
+        # if human player doesn't have enough money to call
+        return human.money # all-in
 
 def callAI (ai, betHigh, prevBet):
+    # function returns how much AI player owed to continue play
     ai.callout = "call"
 
     owed = betHigh - prevBet
     print(f"AI owed money {owed}")
 
     if owed == 0:
-        return betHigh
+        # if AI player owed nothing
+        return 0
     
-    if owed > 0 and ai.money >= owed:
-        # if highest bet is greater than what player bet before,
-        # player needs to pay extra
-        bet = owed
-        ai.money -= betHigh - prevBet
-    elif owed > 0 and ai.money < owed:
-        bet = ai.money
-        ai.money = 0
-
-    # if ai.money >= betHigh:
-    #     bet = betHigh
-    # else:
-    #     bet = ai.money
-
-    #ai.money -= bet
-    
-    return bet
-
+    if ai.money >= owed:
+        # if AI player has enough money to call
+        return owed
+    else:
+        # if AI player doesn't have enough moeny to call
+        return ai.money # all-in
 
 class Player:
     def __init__(self, money=100) -> None:
@@ -183,6 +167,9 @@ class AI(Player):
         print(f"Current AI money: {self.money}")
         myBet = -1
 
+        # calculate winRate based on Monte Carlo
+        winRate = simulate(nAlivePlayer, self, community, deck, nSimulation)
+        
         # random action:
         if random.random() < 0.3: # 30% chance to play random action
             boolRand = random.randint(1,10)
@@ -195,7 +182,7 @@ class AI(Player):
                     self.status = 'a'
                     callout = "all-in"
                 elif boolRand == 1:
-                    myBet = self.up(betHigh, prevBet)
+                    myBet = self.up(betHigh, prevBet, winRate)
                     callout = "raise"
                 elif boolRand == 2:
                     # random action 2, raise only if AI has more money to raise
@@ -219,7 +206,6 @@ class AI(Player):
 
 
         # logical action:
-        winRate = simulate(nAlivePlayer, self, community, deck, nSimulation)
         if winRate > 0.9 and random.random() < 0.3: # with high chance to win, all-in with 30% chance
             myBet = self.money
             self.money = 0
@@ -251,7 +237,8 @@ class AI(Player):
         rank = 10
         if not community:
             rank = preflopThink(self)[0]
-        rank = think(self, community)[0]
+        else:
+            rank = think(self, community)[0]
         self.score = 10 - rank
     
     def call(self, betHigh, prevBet):
@@ -260,8 +247,8 @@ class AI(Player):
     def fold(self):
         self.status = "f"
         
-    def up(self, betHigh, prevBet):
-        return raiseAI(self, betHigh, prevBet)
+    def up(self, betHigh, prevBet, winRate):
+        return raiseAI(self, betHigh, prevBet, winRate)
         
 
 
@@ -627,14 +614,15 @@ def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=
             else:
                 result = player.action(community, betHigh, roundBet[idx], nAlivePlayer, deck, nSimulation=1000)
             
-            if player.money == 0:
-                player.status = 'a' # all-in
-            
             if result != -1:
                 roundBet[idx] += result
                 if roundBet[idx] > betHigh:
                     betHigh = roundBet[idx]
+                player.money -= result
         
+            if player.money == 0:
+                player.status = 'a' # all-in
+
         if allCalled:
             break
 
@@ -652,6 +640,7 @@ class Person:
 
 
 def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
+    # Monte Carlo based prediction of AI's winning rate
     wins = 0
     nOpp = nAlivePlayer-1
 
