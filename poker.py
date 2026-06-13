@@ -6,7 +6,20 @@ import copy
 
 INT_MAX = 100000
 
+SUITS = {'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣'}
 FACE_CARDS = {1: "A", 11: "J", 12: "Q", 13: "K"}
+HAND_RANK = {
+    1: "Royal Flush",
+    2: "Straight Flush", 
+    3: "Four of a Kind",
+    4: "Full House",
+    5: "Flush",
+    6: "Straight",
+    7: "Three of a Kind",
+    8: "Two Pair",
+    9: "One Pair",
+    10: "High Card"
+}
 
 #random.seed(100)
 
@@ -440,14 +453,14 @@ def fullhouse(cards) -> int | int | int:
 def flush(cards) -> int | int | int:
     # Flush
     symbols = [card[0] for card in cards]
-    if symbols.count('club') == 5 or symbols.count('diamond') == 5 \
-        or symbols.count('heart') == 5 or symbols.count('spade') == 5:
+    if symbols.count('club') >= 5 or symbols.count('diamond') >= 5 \
+        or symbols.count('heart') >= 5 or symbols.count('spade') >= 5:
         return 5, -1, -1
     return -1, -1, -1
 
 def straight(cards) -> int | int | int:
     # Straight
-    values = [card[1] for card in cards]
+    values = sorted(set(card[1] for card in cards))
     prev = values[0]
     cnt = 1
     for value in values[1:]:
@@ -573,8 +586,11 @@ def showCard(community):
 
     print("Community cards:")
     for card in community:
+        suit = SUITS[card[0]]
         value = FACE_CARDS.get(card[1], card[1])
-        print(f"{card[0]} {value}")
+        #print(f"{card[0]} {value}")
+        print(f"{suit}{value}", end=" ")
+    print()
 
 def showHand(player):
 
@@ -584,8 +600,11 @@ def showHand(player):
         print("AI hand:")
 
     for card in player.hand:
+        suit = SUITS[card[0]]
         value = FACE_CARDS.get(card[1], card[1])
-        print(f"{card[0]} {value}")
+        #print(f"{card[0]} {value}")
+        print(f"{suit}{value}", end=" ")
+    print()
 
 
 def emptyHand(player):
@@ -643,12 +662,6 @@ def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=
     return pot, nAlivePlayer
 
 
-class Person:
-    def __init__(self, name, age):
-        self.my_name = name
-        self.age = age
-
-
 def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
     # Monte Carlo based prediction of AI's winning rate
     wins = 0
@@ -659,6 +672,7 @@ def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
 
         # copy remaining deck
         remainingDeck = copy.deepcopy(deck)
+        remainingDeck.shuffle()
 
         # complete community cards (up to 5 cards)
         simCommunity = community.copy()
@@ -851,7 +865,8 @@ def main():
             finalWinnerString = "Human player"
         else:
             finalWinnerString = "AI player " + str(finalWinner)
-        print(f"player {finalWinnerString} won the game!")
+        winningHand = HAND_RANK[winningScore]
+        print(f"player {finalWinnerString} won the game with {winningHand}!")
         
         
         # Winner takes money
@@ -887,33 +902,6 @@ def main():
     
         sbOrder = (sbOrder+1) % playerCnt
 
-
-
-    # ai1 = AI() 
-    # sb = player
-    # bb = ai1
-
-    # listPlayer = [player, ai1]
-
-
-    # while True:
-    #     deal(player,deck)
-    #     deal(ai1,deck)
-    #     community = []
-    #     community = commCard(deck)
-    #     community = commCard(deck)
-    #     community = commCard(deck)
-    #     while len(community) <= 5 or nAlivePlayer > 1:
-    #         player.prompt()
-    #         ai1.action()
-    #         if len(community) != 5:
-    #             community = commCard(deck)
-
-
-
-    # val = input("Enter your value: ")
-    # print(val)
-    # card.deal()
 
 
 if __name__ == "__main__":
