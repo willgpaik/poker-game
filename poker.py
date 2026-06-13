@@ -1,6 +1,13 @@
+# montecarlo-poker
+# Texas Hold'em poker with Monte Carlo simulation-based AI
+# Author: Ghanghoon Paik
+# License: MIT
+# https://github.com/willgpaik/montecarlo-poker
+
 import random
 import math
 import copy
+from collections import Counter
 
 SUITS = {'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣'}
 FACE_CARDS = {1: "A", 11: "J", 12: "Q", 13: "K"}
@@ -249,247 +256,92 @@ class AI(Player):
 
 
 def preflopThink(player):
-    cards = player.hand
-    cards.sort()
-    if threecard(cards) != (-1, -1, -1):
-        return threecard(cards)
-    elif onepair(cards) != (-1, -1, -1):
-        return onepair(cards)
-    else:
-        return highcard(cards)
+    return evaluate_hand(player.hand)
 
 
-def think(player, community) -> int | int | int:
-        # rank, high card, low card
+def think(player, community):
+    return evaluate_hand(player.hand + community)
 
-        cards = player.hand + community
-        cards.sort()
-        if royalflush(cards) != (-1, -1, -1): # (-1, -1, -1) means unable to make it
-            return royalflush(cards) # if royalflush is obtained
-        elif straightflush(cards) != (-1, -1, -1):
-            return straightflush(cards)
-        elif fourcard(cards) != (-1, -1, -1):
-            return fourcard(cards)
-        elif fullhouse(cards) != (-1, -1, -1):
-            return fullhouse(cards)
-        elif flush(cards) != (-1, -1, -1):
-            return flush(cards)
-        elif straight(cards) != (-1, -1, -1):
-            return straight(cards)
-        elif threecard(cards) != (-1, -1, -1):
-            return threecard(cards)
-        elif twopair(cards) != (-1, -1, -1):
-            return twopair(cards)
-        elif onepair(cards) != (-1, -1, -1):
-            return onepair(cards)
-        else:
-            return highcard(cards)
         
-
-def royalflush(cards) -> int | int | int:
-    # Royal flush:
-    symbols = [card[0] for card in cards]
-    if symbols.count('club') >= 5:
-        values = [card[1] for card in cards if card[0] == 'club' and \
-                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
-        if len(values) == 5:
-            return 1, -1, -1
-    if symbols.count('diamond') >= 5:
-        values = [card[1] for card in cards if card[0] == 'diamond' and \
-                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
-        if len(values) == 5:
-            return 1, -1, -1
-    if symbols.count('heart') >= 5:
-        values = [card[1] for card in cards if card[0] == 'heart' and \
-                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
-        if len(values) == 5:
-            return 1, -1, -1
-    if symbols.count('spade') >= 5:
-        values = [card[1] for card in cards if card[0] == 'spade' and \
-                    (card[1] == 1 or card[1] == 10 or card[1] == 11 or card[1] == 12 or card[1] == 13)]
-        if len(values) == 5:
-            return 1, -1, -1
-    return -1, -1, -1
-
-def straightflush(cards) -> int | int | int:
-    # Straight flush:
-    symbols = [card[0] for card in cards]
-    if symbols.count('club') >= 5:
-        values = [card[1] for card in cards if card[0] == 'club']
-        high = -1 # highest card value
-        if len(values) == 5:
-            if values[-1] - values[0] == 4:
-                return 2, values[-1], -1
-        elif len(values) == 6:
-            if values[-1] - values[1] == 4:
-                high = values[-1]
-            elif values[-2] - values[0] == 4:
-                high = max(values[-2], high)
-            if high != -1:
-                return 2, high, -1
-        elif len(values) == 7:
-            if values[-1] - values[2] == 4:
-                high = values[-1]
-            elif values[-2] - values[1] == 4:
-                high = max(values[-2], high)
-            elif values[-3] - values[0] == 4:
-                high = max(values[-3], high)
-            if high != -1:
-                return 2, high, -1
-    elif symbols.count('diamond') >= 5:
-        values = [card[1] for card in cards if card[0] == 'diamond']
-        high = -1 # highest card value
-        if len(values) == 5:
-            if values[-1] - values[0] == 4:
-                return 2, values[-1], -1
-        elif len(values) == 6:
-            if values[-1] - values[1] == 4:
-                high = values[-1]
-            elif values[-2] - values[0] == 4:
-                high = max(values[-2], high)
-            if high != -1:
-                return 2, high, -1
-        elif len(values) == 7:
-            if values[-1] - values[2] == 4:
-                high = values[-1]
-            elif values[-2] - values[1] == 4:
-                high = max(values[-2], high)
-            elif values[-3] - values[0] == 4:
-                high = max(values[-3], high)
-            if high != -1:
-                return 2, high, -1
-    elif symbols.count('heart') >= 5:
-        values = [card[1] for card in cards if card[0] == 'heart']
-        high = -1 # highest card value
-        if len(values) == 5:
-            if values[-1] - values[0] == 4:
-                return 2, values[-1], -1
-        elif len(values) == 6:
-            if values[-1] - values[1] == 4:
-                high = values[-1]
-            elif values[-2] - values[0] == 4:
-                high = max(values[-2], high)
-            if high != -1:
-                return 2, high, -1
-        elif len(values) == 7:
-            if values[-1] - values[2] == 4:
-                high = values[-1]
-            elif values[-2] - values[1] == 4:
-                high = max(values[-2], high)
-            elif values[-3] - values[0] == 4:
-                high = max(values[-3], high)
-            if high != -1:
-                return 2, high, -1
-    elif symbols.count('spade') >= 5:
-        values = [card[1] for card in cards if card[0] == 'spade']
-        high = -1 # highest card value
-        if len(values) == 5:
-            if values[-1] - values[0] == 4:
-                return 2, values[-1], -1
-        elif len(values) == 6:
-            if values[-1] - values[1] == 4:
-                high = values[-1]
-            elif values[-2] - values[0] == 4:
-                high = max(values[-2], high)
-            if high != -1:
-                return 2, high, -1
-        elif len(values) == 7:
-            if values[-1] - values[2] == 4:
-                high = values[-1]
-            elif values[-2] - values[1] == 4:
-                high = max(values[-2], high)
-            elif values[-3] - values[0] == 4:
-                high = max(values[-3], high)
-            if high != -1:
-                return 2, high, -1
-    return -1, -1, -1
-                
-def fourcard(cards) -> int | int | int:
-    # Four cards:
-    values = [card[1] for card in cards]
-    for value in values:
-        if values.count(value) == 4:
-            return 3, value, -1
-    return -1,-1, -1
-
-def fullhouse(cards) -> int | int | int:
+def evaluate_hand(cards):
+    """
+    Evaluate best hand from up to 7 cards.
+    Returns (rank, high, low)  (lower rank is better)
+ 
+    Rank map:
+      1=Royal Flush
+      2=Straight Flush
+      3=Four of a Kind
+      4=Full House
+      5=Flush
+      6=Straight
+      7=Three of a Kind
+      8=Two Pair
+      9=One Pair
+      10=High Card
+    """
+    val_count = Counter(card[1] for card in cards)
+    suit_count = Counter(card[0] for card in cards)
+    counts = sorted(val_count.values(), reverse=True)
+ 
+    flush_suit = next((s for s, c in suit_count.items() if c >= 5), None)
+ 
+    def find_straight(vals):
+        unique = sorted(set(vals))
+        best = -1
+        for i in range(len(unique) - 4):
+            window = unique[i:i+5]
+            if window[-1] - window[0] == 4:
+                best = max(best, window[-1])
+        return best
+ 
+    # Royal flush / Straight flush
+    if flush_suit:
+        flush_vals = [c[1] for c in cards if c[0] == flush_suit]
+        if {1, 10, 11, 12, 13}.issubset(set(flush_vals)):
+            return (1, -1, -1)
+        sf_high = find_straight(flush_vals)
+        if sf_high != -1:
+            return (2, sf_high, -1)
+ 
+    # Four of a kind
+    if counts[0] == 4:
+        quad = max(v for v, c in val_count.items() if c == 4)
+        return (3, quad, -1)
+ 
     # Full house
-    two = 0
-    three = 0
-    values = [card[1] for card in cards]
-    for value in values:
-        if values.count(value) == 3:
-            three = value
-        if values.count(value) == 2:
-            two = value
-    if three != 0 and two != 0:
-        return 4, three, -1
-    return -1, -1, -1
-
-def flush(cards) -> int | int | int:
+    if counts[0] == 3 and counts[1] >= 2:
+        three = max(v for v, c in val_count.items() if c == 3)
+        pair = max(v for v, c in val_count.items() if c >= 2 and v != three)
+        return (4, three, pair)
+ 
     # Flush
-    symbols = [card[0] for card in cards]
-    if symbols.count('club') >= 5 or symbols.count('diamond') >= 5 \
-        or symbols.count('heart') >= 5 or symbols.count('spade') >= 5:
-        return 5, -1, -1
-    return -1, -1, -1
-
-def straight(cards) -> int | int | int:
+    if flush_suit:
+        return (5, max(c[1] for c in cards if c[0] == flush_suit), -1)
+ 
     # Straight
-    values = sorted(set(card[1] for card in cards))
-    prev = values[0]
-    cnt = 1
-    for value in values[1:]:
-        if value == prev + 1:
-            cnt = cnt + 1
-        else:
-            cnt = 1
-        if cnt == 5:
-            return 6, value, -1
-        prev = value
-    return -1, -1, -1
-
-def threecard(cards) -> int | int | int:
-    # Three cards
-    values = [card[1] for card in cards]
-    three = 0
-    for value in values:
-        if values.count(value) == 3:
-            three = max(three, value)
-    if three != 0:
-        return 7, three, -1
-    return -1, -1, -1
-
-def twopair(cards) -> int | int | int:
+    straight_high = find_straight(val_count.keys())
+    if straight_high != -1:
+        return (6, straight_high, -1)
+ 
+    # Three of a kind
+    if counts[0] == 3:
+        three = max(v for v, c in val_count.items() if c == 3)
+        return (7, three, -1)
+ 
     # Two pair
-    values = [card[1] for card in cards]
-    pairs = []
-    for value in values:
-        if values.count(value) == 2:
-            if value not in pairs:
-                pairs.append(value)
-    
+    pairs = sorted([v for v, c in val_count.items() if c >= 2], reverse=True)
     if len(pairs) >= 2:
-        pairs.sort()
-        high = pairs[-1]
-        low = pairs[-2]
-        return 8, high, low # if players have same high cards, compare low cards
-    return -1, -1, -1
-            
-def onepair(cards) -> int | int | int:
+        return (8, pairs[0], pairs[1])
+ 
     # One pair
-    values = [card[1] for card in cards]
-    for value in values:
-        if values.count(value) == 2:
-            return 9, value, -1
-    return -1, -1, -1
+    if len(pairs) == 1:
+        return (9, pairs[0], -1)
+ 
+    # High card
+    return (10, max(val_count.keys()), -1)
 
-def highcard(cards) -> int | int | int:
-        # High card
-        values = [card[1] for card in cards]
-        high = max(values)
-        return 10, high, -1
-            
+
 def deal(player, card):
     for i in range(2):
         player.hand.append(card.deck[0])
@@ -650,6 +502,16 @@ def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
     return wins / nSimulation
             
 
+def getStartMoney():
+    try:
+        val = int(input("Starting money per player (default 100, min 10): "))
+        if val < 10:
+            print("Minimum is 10. Try again.")
+            return getStartMoney()
+        return val
+    except:
+        print("Please enter a number.")
+        return getStartMoney()
 
 
 
@@ -668,10 +530,12 @@ def main():
             print("Cannot convert string to int!")
             nAI = input("Enter number of AI: ")
 
+    startMoney = getStartMoney()
+    human = Human(startMoney)
 
     playerList = [human]
     for i in range(0, nAI):
-        playerList.append(AI())
+        playerList.append(AI(startMoney))
 
     sbOrder = 0
 
@@ -680,6 +544,11 @@ def main():
 
     # Game start
     while keepPlaying == 'y':
+        input("\nPress Enter to start next game...")
+        print("\n" + "=" * 50)
+        print(f"           GAME START")
+        print("=" * 50 + "\n")
+
         # sb/bb order
         playerCnt = len(playerList)
         sb = playerList[sbOrder % playerCnt]
@@ -738,7 +607,7 @@ def main():
         roundCnt = 0
         while len(community) < 5 and nAlivePlayer > 1:
             roundCnt += 1
-            print(f"==================== Round {roundCnt} ====================\n")
+            print(f"\n==================== Round {roundCnt} ====================")
             
             community.append(deck.deck.pop(0))
             showCard(community)

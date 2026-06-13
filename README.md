@@ -33,11 +33,11 @@ Each AI turn, the AI runs a Monte Carlo simulation to estimate its win probabili
 The AI then uses the win rate to decide whether to raise, call, or fold:
 
 ```
-win rate > 0.9  →  all-in (30% chance)
-win rate > 0.7  →  raise
-win rate > 0.4  →  call
-win rate < 0.2  →  bluff all-in (10% chance)
-otherwise       →  fold
+win rate > 0.9  ➤  all-in (30% chance)
+win rate > 0.7  ➤  raise
+win rate > 0.4  ➤  call
+win rate < 0.2  ➤  bluff all-in (10% chance)
+otherwise       ➤  fold
 ```
 
 A 30% random action component is layered on top to make behavior less predictable.
