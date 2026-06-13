@@ -178,7 +178,7 @@ class AI(Player):
 
                 if random.random() < 0.1: # randomly bluff
                     myBet = self.money
-                    self.money = 0
+                    #self.money = 0
                     self.status = 'a'
                     callout = "all-in"
                 elif boolRand == 1:
@@ -208,16 +208,16 @@ class AI(Player):
         # logical action:
         if winRate > 0.9 and random.random() < 0.3: # with high chance to win, all-in with 30% chance
             myBet = self.money
-            self.money = 0
+            #self.money = 0
             self.status = 'a'
             callout = "all-in"
         elif winRate < 0.2 and random.random() < 0.1: # if chance to win is really low, bluff
             myBet = self.money
-            self.money = 0
+            #self.money = 0
             self.status = 'a'
             callout = "all-in"
         elif winRate > 0.7 + random.uniform(-0.4, 0.4): # more than 70% chance to win
-            myBet = self.up(betHigh, prevBet)
+            myBet = self.up(betHigh, prevBet, winRate)
             callout = "raise"
         elif winRate > 0.4 + random.uniform(-0.2, 0.2): # more than 40% chance to win
             myBet = self.call(betHigh, prevBet)
@@ -594,9 +594,11 @@ def emptyHand(player):
 
 def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=None):
     roundBet = [0] * len(playerList) # each player's bet for this round
+    hasActed = [False] * len(playerList) # track each player's action
     if initBets:
         for idx, amount in initBets.items():
             roundBet[idx] = amount
+            hasActed[idx] = True # player sb/bb already finished action
 
     while True:
         allCalled = True
@@ -604,8 +606,8 @@ def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=
         for idx, player in enumerate(playerList):
             if player.status != 'p':
                 continue
-            if roundBet[idx] == betHigh:
-                continue
+            if hasActed[idx] and roundBet[idx] == betHigh:
+                continue # if player finished action and amount it correct
             
             allCalled = False
 
@@ -613,12 +615,19 @@ def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=
                 result = player.prompt(betHigh, roundBet[idx])
             else:
                 result = player.action(community, betHigh, roundBet[idx], nAlivePlayer, deck, nSimulation=1000)
-            
+
+            hasActed[idx] = True # finished action
+
             if result != -1:
                 roundBet[idx] += result
+                player.money -= result
                 if roundBet[idx] > betHigh:
                     betHigh = roundBet[idx]
-                player.money -= result
+                    # if a player raised, others need to make an action
+                    for i in range(len(playerList)):
+                        if i != idx: # except for player who raised
+                            hasActed[i] = False
+
         
             if player.money == 0:
                 player.status = 'a' # all-in
@@ -626,7 +635,8 @@ def callAll(playerList, community, pot, deck, nAlivePlayer, betHigh=0, initBets=
         if allCalled:
             break
 
-    pot += sum(roundBet)
+    initBetsTotal = sum(initBets.values()) if initBets else 0
+    pot += sum(roundBet) - initBetsTotal
 
     nAlivePlayer = sum(1 for p in playerList if (p.status == 'p' or p.status == 'a'))
 
@@ -706,14 +716,16 @@ def main():
 
     sbOrder = 0
 
-    playerCnt = len(playerList)
-    sb = playerList[sbOrder % playerCnt]
-    bb = playerList[(sbOrder+1) % playerCnt]
 
     keepPlaying = 'y'
     # Game start
-    playerCnt = len(playerList)
+#    playerCnt = len(playerList)
     while keepPlaying == 'y':
+        # sb/bb order
+        playerCnt = len(playerList)
+        sb = playerList[sbOrder % playerCnt]
+        bb = playerList[(sbOrder+1) % playerCnt]
+   
         deck = Card() # new deck for new game
 
         if playerCnt == 1:
@@ -811,7 +823,7 @@ def main():
         # Find winner
         playerScore = [] # {score, high card, low card}
         for player in playerList:
-            if player.status == 'p' or player.ststus == 'a':
+            if player.status == 'p' or player.status == 'a':
                 playerScore.append(think(player, community))
             else: # if player is not playable
                 playerScore.append((100, -1, -1))
@@ -873,7 +885,7 @@ def main():
             print("You are bankrupt! Game over.")
             break
     
-    sbOrder = (sbOrder+1) % playerCnt
+        sbOrder = (sbOrder+1) % playerCnt
 
 
 
