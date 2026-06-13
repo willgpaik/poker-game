@@ -2,10 +2,6 @@ import random
 import math
 import copy
 
-# TO DO:
-
-INT_MAX = 100000
-
 SUITS = {'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣'}
 FACE_CARDS = {1: "A", 11: "J", 12: "Q", 13: "K"}
 HAND_RANK = {
@@ -27,15 +23,10 @@ class Card:
     def __init__(self):
         self.deck = []
         suit = ['spade', 'club', 'diamond', 'heart']
-        # value = range(2,11)
         value = range(1,14)
         for i in suit:
-            # self.deck.append({{i}, A})
             for j in value:
                 self.deck.append((i,j))
-            # self.deck.append({{i}, 'J'})
-            # self.deck.append({{i}, 'Q'})
-            # self.deck.append({{i}, 'K'})
         self.shuffle()
 
     def __str__(self) -> str:
@@ -43,9 +34,6 @@ class Card:
 
     def shuffle(self):
         random.shuffle(self.deck)
-
-# card = Card()
-# print(card)
 
 def raiseHuman (human, betHigh, prevBet):
     # function returns how much human player will raise
@@ -79,8 +67,6 @@ def raiseAI (ai, betHigh, prevBet, winRate):
     if aiAvail <= 0:
         # if AI player has not enough money to raise
         return 0
-
-    betRand = random.randint(1, aiAvail) # random raise
 
     # raise based on the winRate
     if winRate > 0.8:
@@ -142,7 +128,6 @@ class Player:
         self.score = 0
         # status = "p"->play, "f"->fold, "b"->bankrupt
         # status = "a"->all-in (side pot no implemented)
-        #self.cont = False # if call or fold or bankrupt -> True
 
 class Human(Player):
     def __init__(self, money=100) -> None:
@@ -174,7 +159,6 @@ class AI(Player):
     def __init__(self, money=100) -> None:
         super().__init__(money)
         self.type = "AI"
-        callout = ""
     
     def action(self, community, betHigh, prevBet, nAlivePlayer, deck, nSimulation=1000):
         print(f"Current AI money: {self.money}")
@@ -191,7 +175,6 @@ class AI(Player):
 
                 if random.random() < 0.1: # randomly bluff
                     myBet = self.money
-                    #self.money = 0
                     self.status = 'a'
                     callout = "all-in"
                 elif boolRand == 1:
@@ -221,7 +204,6 @@ class AI(Player):
         # logical action:
         if winRate > 0.9 and random.random() < 0.3: # with high chance to win, all-in with 30% chance
             myBet = self.money
-            #self.money = 0
             self.status = 'a'
             callout = "all-in"
         elif winRate < 0.2 and random.random() < 0.1: # if chance to win is really low, bluff
@@ -275,7 +257,6 @@ def preflopThink(player):
         return onepair(cards)
     else:
         return highcard(cards)
-    # at preflop stage, need to make decision based on hand
 
 
 def think(player, community) -> int | int | int:
@@ -283,7 +264,6 @@ def think(player, community) -> int | int | int:
 
         cards = player.hand + community
         cards.sort()
-        # [('club', 13), ('diamond', 1), ('diamond', 2), ('diamond', 3), ('diamond', 8)]
         if royalflush(cards) != (-1, -1, -1): # (-1, -1, -1) means unable to make it
             return royalflush(cards) # if royalflush is obtained
         elif straightflush(cards) != (-1, -1, -1):
@@ -302,7 +282,6 @@ def think(player, community) -> int | int | int:
             return twopair(cards)
         elif onepair(cards) != (-1, -1, -1):
             return onepair(cards)
-        #elif highcard(cards) != (-1, -1, -1):
         else:
             return highcard(cards)
         
@@ -441,9 +420,6 @@ def fullhouse(cards) -> int | int | int:
     for value in values:
         if values.count(value) == 3:
             three = value
-            if value > three:
-                two = three
-                three = value
         if values.count(value) == 2:
             two = value
     if three != 0 and two != 0:
@@ -514,25 +490,6 @@ def highcard(cards) -> int | int | int:
         high = max(values)
         return 10, high, -1
             
-
-
-
-
-# [2] 3 5 8 10
-
-# cnt = 1
-# prev = value
-
-
-
-# [c3 d3 h3] [c5 d5] [h10 s10]
-# [c3 d3 h3] [c5 d5 h5] s2
-
-
-# heart: [[3, 4, 5, 6, 8], 1, 2] -> [1 2 3 4 5 6 8] -> 2-6
-# spade: [[3, 4, 5, 6, 8], 7, 9] -> [3 4 5 6 7 8 9] -> 5-9
-
-
 def deal(player, card):
     for i in range(2):
         player.hand.append(card.deck[0])
@@ -566,19 +523,17 @@ def initBet(sb, bb, pot) -> int | int | int:
 
     return small, big, pot
 
-def compareHands(playerList, winnerIdx):
-    
-    highIdx = 0
-    highScore = 0
-    
-    for idx in winnerIdx:
-        score = playerList[idx].score
-        if score > highScore:
-            highScore = score
+def compareHands(winnerIdx, playerScore):
+    highIdx = winnerIdx[0];
+
+    for idx in winnerIdx[1:]:
+        if playerScore[idx][1] > playerScore[highIdx][1]:
             highIdx = idx
+        elif playerScore[idx][1] == playerScore[highIdx][1]:
+            if playerScore[idx][2] > playerScore[highIdx][2]:
+                highIdx = idx
 
     return highIdx
-
 
 
 def showCard(community):
@@ -588,7 +543,6 @@ def showCard(community):
     for card in community:
         suit = SUITS[card[0]]
         value = FACE_CARDS.get(card[1], card[1])
-        #print(f"{card[0]} {value}")
         print(f"{suit}{value}", end=" ")
     print()
 
@@ -602,7 +556,6 @@ def showHand(player):
     for card in player.hand:
         suit = SUITS[card[0]]
         value = FACE_CARDS.get(card[1], card[1])
-        #print(f"{card[0]} {value}")
         print(f"{suit}{value}", end=" ")
     print()
 
@@ -698,18 +651,6 @@ def simulate(nAlivePlayer, player, community, deck, nSimulation=1000):
 
 
 def main():
-    # MAIN
-    #     class Card
-    #     class Player
-    #     class AI
-    #     sb, bb
-    #     loop:
-    #         set Player.hand
-    #     3 CC    
-    #     loop:
-    #         action
-    #         CC (if loop cnt < 3)
-
     deck = Card()
     human = Human()
     nAI = input("Enter number of AI: ")
@@ -732,8 +673,8 @@ def main():
 
 
     keepPlaying = 'y'
+
     # Game start
-#    playerCnt = len(playerList)
     while keepPlaying == 'y':
         # sb/bb order
         playerCnt = len(playerList)
@@ -765,27 +706,12 @@ def main():
         showHand(playerList[1])
 
         # Pre-flop
-        for player in playerList[2:]:
-            pass # if player calls or raises increase pot and decrease player.money
-        
         nAlivePlayer = sum(1 for p in playerList if (p.status == 'p' or p.status == 'a'))
         initBets = {
                 playerList.index(sb): small,
                 playerList.index(bb): big
                 }
         pot, nAlivePlayer = callAll(playerList, [], pot, deck, nAlivePlayer, betHigh=big, initBets=initBets)
-
-        # playerList[0].prompt(big)
-
-        # if len(playerList) == 2 and playerList[0].status == "f":
-        #     print(f"player AI player1 won the game!")
-        #     # Winner takes money
-        #     playerList[1].money = playerList[1].money + pot
-        #     for player in playerList:
-        #         if player.status != "b":
-        #             player.status = "p"
-        #     continue
-        # playerList[1].action([], big)
 
         # Flop
         community = []
@@ -797,11 +723,6 @@ def main():
         deck.deck.pop(0)
 
         showCard(community)
-
-        # nAlivePlayer = 0
-        # for player in playerList:
-        #     if player.status == "p":
-        #         nAlivePlayer = nAlivePlayer + 1
 
         print(f"Human money: {human.money}")
         for ai in playerList[1:]:
@@ -859,7 +780,7 @@ def main():
         if winnerCnt == 1:
             finalWinner = winnerIdx[0] # index of winning player from playerList
         else:
-            finalWinner = compareHands(playerList, winnerIdx)
+            finalWinner = compareHands(winnerIdx, playerScore)
         
         if finalWinner == 0:
             finalWinnerString = "Human player"
@@ -872,9 +793,6 @@ def main():
         # Winner takes money
         playerList[finalWinner].money = playerList[finalWinner].money + pot
         
-        # for i, value in enumerate(playerScore):
-                
-
         # Remove bankrupted player
         for player in playerList:
             if player.money == 0:
