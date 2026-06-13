@@ -88,7 +88,7 @@ def callHuman (human, betHigh, prevBet):
     # function returns how much human player owed to continue play
 
     owed = betHigh - prevBet
-    print(f"Human owed money {owed}")
+    # print(f"Human owed money {owed}") # debug purpose
 
     if owed == 0:
         # if human player owed nothing
@@ -106,7 +106,7 @@ def callAI (ai, betHigh, prevBet):
     ai.callout = "call"
 
     owed = betHigh - prevBet
-    print(f"AI owed money {owed}")
+    # print(f"AI owed money {owed}") # debug purpose
 
     if owed == 0:
         # if AI player owed nothing
@@ -500,7 +500,11 @@ def initBet(sb, bb, pot) -> int | int | int:
 
     print("This is initial bet for small blind")
 
-    small = input(f"How much do you want to bet (input 1-{sb.money}): ")
+    if sb.type == "human":
+        small = input(f"How much do you want to bet (input 1-{sb.money}): ")
+    else:
+        small = random.randint(1, min(10, sb.money)) # AI player will put random small amount
+        print(f"AI small blind: {small}")
 
     while type(small) != int or small > sb.money:
         try:
@@ -703,7 +707,7 @@ def main():
             deal(player, deck)
         
         showHand(human)
-        showHand(playerList[1])
+        #showHand(playerList[1]) # debug purpose
 
         # Pre-flop
         nAlivePlayer = sum(1 for p in playerList if (p.status == 'p' or p.status == 'a'))
